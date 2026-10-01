@@ -26,26 +26,28 @@ try {
  const click=selector=>evaluate(`document.querySelector(${JSON.stringify(selector)})?.click()`);
  const screenshot=async name=>{await mkdir('artifacts',{recursive:true});const shot=await cdp('Page.captureScreenshot',{format:'png',captureBeyondViewport:false});await writeFile(`artifacts/${name}.png`,Buffer.from(shot.data,'base64'));};
  const waitForApp=()=>waitFor(async()=>evaluate(`!!document.querySelector('[data-action="step"]')`));
- await cdp('Page.enable');await cdp('Runtime.enable');await cdp('Log.enable');const browserVersion=await cdp('Browser.getVersion');await cdp('Page.navigate',{url:`http://127.0.0.1:${port}/`});await waitForApp();
+ await cdp('Page.enable');await cdp('Runtime.enable');await cdp('Log.enable');const browserVersion=await cdp('Browser.getVersion');await cdp('Page.navigate',{url:`http://127.0.0.1:${port}/`});
+ await waitFor(async()=>evaluate(`!!document.querySelector('[data-action="step"]')||!!document.querySelector('.wizard-page')`));
+ if(await evaluate(`!!document.querySelector('.wizard-page')`)){await click('[data-action="wizard-cancel"]');await waitForApp();}
  assert.equal(await evaluate(`performance.getEntriesByType('resource').some(r=>r.name.includes('/app/worker.js'))`),true,'worker nativo cargado');
  await screenshot('polis-inicio-1280');
  await click('[data-action="wizard"]');await waitFor(async()=>evaluate(`!!document.querySelector('.guided-setup')`));await screenshot('polis-cuestionario-1280');
  await click('[data-action="wizard-cancel"]');await click('[data-action="dismiss-intro"]');await screenshot('polis-simulacion-unica-1280');
  await click('#save-help');await waitFor(async()=>evaluate(`!document.querySelector('#save-help-popover').hidden`));await screenshot('polis-ayuda-guardado-1280');await click('[data-action="close-save-help"]');
  await click('[data-tab="about"]');await waitFor(async()=>evaluate(`!!document.querySelector('.prose')`));await screenshot('polis-acerca-1280');await click('[data-tab="lab"]');
- await click('[data-action="step"]'); await waitFor(async()=>evaluate(`document.querySelector('#sim-date')?.textContent && !!document.querySelector('.lock-note')`));
+ await click('[data-action="step"]'); await waitFor(async()=>evaluate(`!!document.querySelector('#sim-date')`));
  for(const width of [360,390,1280]){
   await cdp('Emulation.setDeviceMetricsOverride',{width,height:900,deviceScaleFactor:1,mobile:width<600});
-  const layout=await evaluate(`(()=>{const n=document.querySelector('.lock-note'),b=n?.querySelector('button');return {note:!!n,button:!!b,visible:!!b&&b.getBoundingClientRect().width>0&&b.getBoundingClientRect().right<=innerWidth,overflow:document.documentElement.scrollWidth>innerWidth}})()`);
-  assert.equal(layout.note,true,`aviso ${width}px`);assert.equal(layout.button,true,`acción junto al aviso ${width}px`);assert.equal(layout.visible,true,`acción visible ${width}px`);assert.equal(layout.overflow,false,`sin overflow ${width}px`);
+  const layout=await evaluate(`(()=>{const b=document.querySelector('.config-actions [data-action="compare"]');return {button:!!b,visible:!!b&&b.getBoundingClientRect().width>0&&b.getBoundingClientRect().right<=innerWidth,overflow:document.documentElement.scrollWidth>innerWidth}})()`);
+  assert.equal(layout.button,true,`acción de comparación ${width}px`);assert.equal(layout.visible,true,`acción visible ${width}px`);assert.equal(layout.overflow,false,`sin overflow ${width}px`);
   if(width===360||width===1280){if(width===360)await evaluate(`window.scrollTo(0,document.querySelector('.config-panel').getBoundingClientRect().top+scrollY-18)`);else await evaluate('window.scrollTo(0,0)');await screenshot(`bifurcacion-${width}`);}
-  for(const tab of ['economy','institutions','advanced']){await click(`[data-config-tab="${tab}"]`);assert.equal(await evaluate(`!!document.querySelector('.lock-note button[data-action="compare"]')`),true,`botón en ${tab}`);}
+  for(const tab of ['economy','institutions','advanced']){await click(`[data-config-tab="${tab}"]`);assert.equal(await evaluate(`!!document.querySelector('.config-actions [data-action="compare"]')`),true,`botón en ${tab}`);}
  }
  await cdp('Emulation.setDeviceMetricsOverride',{width:390,height:900,deviceScaleFactor:1,mobile:true});
  const month=await evaluate(`document.querySelector('#sim-date').textContent`);
- await click('.lock-note button[data-action="compare"]');assert.match(await evaluate(`document.querySelector('[aria-modal="true"] p').textContent`),/conservaremos|crearemos otra/i);
- await click('[data-action="cancel-dialog"]');assert.equal(await evaluate(`document.querySelector('#sim-date').textContent`),month,'cancelar conserva el estado');assert.equal(await evaluate(`document.activeElement===document.querySelector('.lock-note [data-action=\"compare\"]')`),true,'cancelar devuelve el foco al aviso');
- await click('.lock-note button[data-action="compare"]');await screenshot('polis-dialogo-comparacion-1280');await click('[data-action="confirm-dialog"]');
+ await click('.config-actions [data-action="compare"]');assert.match(await evaluate(`document.querySelector('[aria-modal="true"] p').textContent`),/conservaremos|crearemos otra/i);
+ await click('[data-action="cancel-dialog"]');assert.equal(await evaluate(`document.querySelector('#sim-date').textContent`),month,'cancelar conserva el estado');assert.equal(await evaluate(`document.activeElement===document.querySelector('.config-actions [data-action=\"compare\"]')`),true,'cancelar devuelve el foco al control de comparación');
+ await click('.config-actions [data-action="compare"]');await screenshot('polis-dialogo-comparacion-1280');await click('[data-action="confirm-dialog"]');
  await click('[data-config-tab="economy"]');
  await waitFor(async()=>evaluate(`!document.querySelector('[aria-modal="true"]') && document.querySelector('[data-policy="taxShift"]')?.disabled===false`));
  assert.equal(await evaluate(`document.querySelector('#sim-date').textContent`),month,'FORK no avanza el mes');
@@ -62,10 +64,14 @@ try {
  assert.equal(await evaluate(`document.querySelector('#sim-date').textContent`),advancedMonth,'la recarga conserva el mes guardado');
  assert.equal(await evaluate(`document.querySelector('[data-action="play"]').textContent.includes('Reproducir')`),true,'recarga inicia pausada');
  assert.equal(await evaluate(`document.querySelector('[data-policy="taxShift"]')?.value`),'4','configuración B restaurada');
- console.log('PASS Chromium real: HTTP, Web Worker, aviso 360/390/1280, cancelación, comparación, cambio, avance, IndexedDB y recarga pausada.');
+ console.log('PASS Chromium real: HTTP, Web Worker, navegación inicial y layout 360/390/1280, cancelación, comparación, cambio, avance, IndexedDB y recarga pausada.');
  await cdp('Emulation.setDeviceMetricsOverride',{width:1280,height:900,deviceScaleFactor:1,mobile:false});await screenshot('polis-comparacion-1280');
  console.log(`Navegador: ${browserVersion.product}; errores de consola/página: ${JSON.stringify(pageErrors)}`);
- console.log('Capturas: inicio, cuestionario, simulación única, comparación, ayuda, Acerca de y aviso en 360/1280 px, en artifacts/.');
+ console.log('Capturas: inicio, cuestionario, simulación única, comparación, ayuda, Acerca de y vistas en móvil y escritorio, en artifacts/.');
  ws.close();
-} finally {server.kill();browser?.kill();await rm(dir,{recursive:true,force:true});}
+} finally {
+ server.kill();
+ if(browser){const exited=once(browser,'exit').catch(()=>{});browser.kill();await Promise.race([exited,delay(3000)]);}
+ await rm(dir,{recursive:true,force:true,maxRetries:5,retryDelay:100});
+}
 async function waitFor(fn){const end=Date.now()+15000;while(Date.now()<end){const value=await fn();if(value)return value;await delay(100);}throw new Error('Tiempo de espera agotado en browser test');}
