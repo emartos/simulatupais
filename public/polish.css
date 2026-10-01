@@ -216,8 +216,66 @@
   .wizard-summary { grid-template-columns: 1fr; }
   #save-help-popover { position: fixed; top: 76px; right: 12px; }
 }
-/* The new name needs normal word spacing and room beside the section tabs. */
-.brand strong { font-size: 16px; letter-spacing: 0; }
-@media (max-width: 1180px) {
-  .brand-sub { display: none; }
+
+/* Directional KPI changes are relative to the simulation's starting point. */
+.kpi-main.good, .kpi-change.good { color: #83c69a; }
+.kpi-main.bad, .kpi-change.bad { color: #e28b84; }
+.kpi-main.neutral { color: var(--text); }
+.kpi-change { margin-top: 4px; font-size: 10px; font-variant-numeric: tabular-nums; }
+.kpi-change.neutral { color: var(--muted); }
+.metric-change { margin: 12px 0 0; color: var(--muted); font-size: 11px; font-variant-numeric: tabular-nums; }
+.metric-change.good { color: #83c69a; }
+.metric-change.bad { color: #e28b84; }
+.color-legend { margin: 0 2px 10px; color: var(--muted); font-size: 10px; line-height: 1.5; }
+.wizard-intro-copy { font-size: 16px; line-height: 1.75; }
+@media (max-width: 560px) { .wizard-intro-copy { font-size: 14px; } }
+.wizard-intro-copy { max-width: none; }
+
+/* Slightly larger utility text for readability. */
+.topbar nav button { font-size: 13px; }
+.local-status { font-size: 12px; }
+footer { font-size: 11px; }
+footer button { font-size: 11px; }
+.wizard-actions button { font-size: 12px; }
+@media (max-width: 820px) {
+  .topbar nav button { font-size: 12px; }
 }
+@media (max-width: 560px) {
+  footer { font-size: 10px; }
+  footer button { font-size: 10px; }
+  .wizard-actions button { font-size: 12px; }
+  .local-status { font-size: 11px; }
+}
+.local-status[data-status="idle"] .status-dot { background: #7f8998; }
+
+/* Readability pass: explanatory text and compact home indicators. */
+.prose p { font-size: 15px; line-height: 1.85; }
+.prose table { font-size: 12px; }
+.prose th { font-size: 11px; }
+.prose .flow > div { font-size: 13px; }
+.kpi-label { font-size: 11px; }
+.kpi-unit { font-size: 12px; line-height: 1.6; }
+.kpi-change { font-size: 11px; }
+.trend-summary { font-size: 12px; }
+.color-legend { font-size: 11px; }
+.country-row { font-size: 12px; }
+.country-panel .tiny, .feed-footer, .event p, .empty-feed p { font-size: 12px; }
+.household-panel .muted { font-size: 12px; }
+.household-panel table { font-size: 12px; }
+.chart-meta, .chart-footer { font-size: 12px; }
+.metric-tabs button { font-size: 11px; }
+.range-heading { font-size: 12px; }
+.range-control p { font-size: 12px; }
+@media (max-width: 560px) {
+  .prose p { font-size: 14px; }
+  .prose table, .household-panel table { font-size: 11px; }
+  .kpi-label { font-size: 10px; }
+  .kpi-unit { font-size: 11px; }
+  .country-row, .country-panel .tiny, .event p, .empty-feed p, .feed-footer { font-size: 11px; }
+  .household-panel .muted, .chart-meta, .chart-footer { font-size: 11px; }
+  .metric-tabs button { font-size: 10px; }
+  .range-heading { font-size: 12px; }
+  .range-control p { font-size: 11px; }
+}
+.line-single { stroke: var(--accent); stroke-width: 2.7; stroke-linejoin: round; }
+.circle-single { fill: var(--accent); stroke: var(--panel); stroke-width: 2; }

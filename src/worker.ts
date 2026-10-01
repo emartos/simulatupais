@@ -19,8 +19,7 @@ scope.onmessage=(event)=>{
       if(type==='ADVANCE') experiment=advance(experiment,payload as number);
       else if(type==='CONFIGURE') {
         const request=payload&&typeof payload==='object'&&'policy' in payload?payload as {policy:unknown;branchId?:'A'|'B'}:{policy:payload,branchId:'B' as const};
-        const branchId=request.branchId||'B',branch=branchId==='A'?experiment.a:experiment.b;
-        if(branch.state.month!==experiment.forkMonth) throw new Error('La configuraci\u00f3n est\u00e1 bloqueada y en marcha. Crea una comparaci\u00f3n desde el estado actual.');
+        const branchId=request.branchId||'B';
         experiment=configureBranch(experiment,branchId,validatePolicy(request.policy));
       } else if(type==='FORK') experiment=fork(experiment,validatePolicy(payload));
       else if(type==='COMPARE') {const request=payload as {sourceId:'A'|'B';policy:unknown};experiment=compareFrom(experiment,request.sourceId,validatePolicy(request.policy));}
