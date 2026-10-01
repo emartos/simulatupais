@@ -1,4 +1,4 @@
-# POLIS — España
+# Simula tu país
 
 Aplicación estática para explorar una simulación económica simplificada de España. Descriptor: «Explora cómo cambia tu país». No ofrece predicciones ni recomendaciones. No contiene IA, cuentas, backend de aplicación, telemetría ni pagos. El cálculo corre en un Web Worker del navegador y el guardado usa IndexedDB local.
 
@@ -42,4 +42,4 @@ Consulta [PLAYBOOK](docs/playbook/PLAYBOOK.md) para recetas, valores de referenc
 
 ## Alcance metodológico
 
-POLIS calcula mecanismos económicos simplificados y describe algunos procedimientos institucionales. No simula todos los efectos de todos los sistemas políticos ni reproduce íntegramente la economía española. Distribuciones de hogares, stocks iniciales sintéticos y respuestas económicas son hipótesis; los agregados observados o estimados se identifican en Datos y fuentes. Los resultados finitos no prueban plausibilidad.
+Simula tu país calcula mecanismos económicos simplificados y describe algunos procedimientos institucionales. No simula todos los efectos de todos los sistemas políticos ni reproduce íntegramente la economía española. Distribuciones de hogares, stocks iniciales sintéticos y respuestas económicas son hipótesis; los agregados observados o estimados se identifican en Datos y fuentes. Los resultados finitos no prueban plausibilidad.

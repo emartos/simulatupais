@@ -3,7 +3,7 @@
 
 help:
 	@printf '%s\n' \
-	  'POLIS · objetivos disponibles' \
+	  'Simula tu país · objetivos disponibles' \
 	  '  make install      Instala dependencias de desarrollo desde package-lock.json' \
 	  '  make build        Compila TypeScript y actualiza dist/' \
 	  '  make serve        Compila y sirve la aplicación en http://127.0.0.1:5173' \

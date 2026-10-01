@@ -4,7 +4,7 @@ import path from 'node:path';
 import {pathToFileURL, fileURLToPath} from 'node:url';
 import assert from 'node:assert/strict';
 const here=path.dirname(fileURLToPath(import.meta.url));
-if(!process.argv[2]){console.error('Uso: node verificar.mjs /ruta/a/polis-espana');process.exit(2);}
+if(!process.argv[2]){console.error('Uso: node verificar.mjs /ruta/a/simula-tu-pais');process.exit(2);}
 try {
  const root=path.resolve(process.argv[2]);
  const load=(f)=>import(pathToFileURL(path.join(root,'dist/app',f)).href);

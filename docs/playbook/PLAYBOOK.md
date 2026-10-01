@@ -1,10 +1,10 @@
-# POLIS / España — Playbook de pruebas v0.1
+# Simula tu país / España — Playbook de pruebas v0.1
 
 ## 1. Alcance y estado de verificación
 
-Este directorio integra documentación, siete sesiones importables, expectativas numéricas fijadas y un verificador externo del proyecto POLIS. La interfaz y el build compilado están integrados en el mismo proyecto; los cambios de modelo no forman parte de esta entrega.
+Este directorio integra documentación, siete sesiones importables, expectativas numéricas fijadas y un verificador externo del proyecto Simula tu país. La interfaz y el build compilado están integrados en el mismo proyecto; los cambios de modelo no forman parte de esta entrega.
 
-Las cifras se han calculado ejecutando el motor JavaScript incluido en POLIS 0.1.0. No se han obtenido preguntando a un LLM ni estimando a ojo. Se ha repetido la batería original: 45 pruebas superadas, 0 fallos. El verificador externo ha superado 7 escenarios, 27 puntos temporales y 3282 comparaciones numéricas, además de comprobaciones de identidades y bifurcación.
+Las cifras se han calculado ejecutando el motor JavaScript incluido en Simula tu país 0.1.0. No se han obtenido preguntando a un LLM ni estimando a ojo. Se ha repetido la batería original: 45 pruebas superadas, 0 fallos. El verificador externo ha superado 7 escenarios, 27 puntos temporales y 3282 comparaciones numéricas, además de comprobaciones de identidades y bifurcación.
 
 **Son expectativas de regresión del software actual, no predicciones de España, recomendaciones de política ni validación empírica del modelo.** Una regresión estable puede conservar un modelo equivocado: por eso se separan las instantáneas numéricas de las identidades y de la revisión metodológica.
 
@@ -33,7 +33,7 @@ Antes de probar, exportar cualquier sesión propia que se quiera conservar: impo
 
 Procedimiento recomendado para cada caso:
 
-1. Abrir POLIS mediante HTTP con `node scripts/serve.mjs`.
+1. Abrir Simula tu país mediante HTTP con `node scripts/serve.mjs`.
 2. Ir al configurador, pestaña **Opciones avanzadas → Importar simulación** y cargar el JSON indicado en el caso.
 3. Comprobar semilla, mes inicial y parámetros. La importación pausa y reconstruye la sesión.
 4. Avanzar con **+1 mes** o **+1 año**, no con reproducción continua cuando se quiera verificar una fecha exacta.

@@ -216,3 +216,8 @@
   .wizard-summary { grid-template-columns: 1fr; }
   #save-help-popover { position: fixed; top: 76px; right: 12px; }
 }
+/* The new name needs normal word spacing and room beside the section tabs. */
+.brand strong { font-size: 16px; letter-spacing: 0; }
+@media (max-width: 1180px) {
+  .brand-sub { display: none; }
+}

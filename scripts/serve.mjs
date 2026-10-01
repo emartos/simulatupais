@@ -23,4 +23,4 @@ const server = createServer(async (req,res) => {
   } catch { res.writeHead(404); res.end('No encontrado'); }
 });
 server.on('error', e => { console.error(e.message); process.exit(1); });
-server.listen(port, host, () => console.log(`POLIS: http://${host}:${server.address().port}\nCtrl+C para detener. Sin API, usuarios ni servicios externos.`));
+server.listen(port, host, () => console.log(`Simula tu país: http://${host}:${server.address().port}\nCtrl+C para detener. Sin API, usuarios ni servicios externos.`));
