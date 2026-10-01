@@ -13,6 +13,7 @@ const root=document.querySelector<HTMLDivElement>('#app')!;
 const worker=new Worker(new URL('./worker.js',import.meta.url),{type:'module'});
 let dataset:Dataset, datasetHash='', exp:Experiment, draft:Policy;
 let currentTab:'lab'|'model'|'sources'|'about'|'wizard'='lab';
+let mobileMenuOpen=false;
 let configTab:'economy'|'institutions'|'advanced'='economy';
 let configuredBranchId:'A'|'B'='B', compareSourceId:'A'|'B'='B';
 let introOpen=true, wizardStep=0, wizardAnswers:(number|null)[]=Array(6).fill(null),wizardAnswered:boolean[]=Array(6).fill(true);
@@ -256,7 +257,7 @@ function render():void {
   let page='';
   if(currentTab==='lab')page=`<section class="hero"><div><h1>¿Qué pasaría en España con otras decisiones?</h1><p>Prueba una configuración, avanza el tiempo y observa sus resultados.</p></div><div class="country-badge"><span class="spain-flag" aria-label="Bandera de España"></span><div class="country-copy"><strong>España</strong><span>Datos de partida: ${exp.base.year}</span></div><a href="#sources" data-tab="sources" class="country-source-link">Ver datos y fuentes ${icon('chevron',15)}</a></div></section>${introOpen?introBlock():''}<section class="timebar"><div id="time-controls">${timeControls()}</div><button data-action="reset" class="icon-button" aria-label="Crear nueva simulación" title="Nueva simulación">${icon('reset')}</button></section><div class="lab-layout">${configPanel()}${mainDashboard()}</div>`;
   else if(currentTab==='model')page=modelPage();else if(currentTab==='sources')page=sourcesPage();else if(currentTab==='about')page=aboutPage();else page=wizardPage();
-  patchHtml(`<header class="topbar"><a class="brand" href="#" data-action="home"><span class="brand-mark">S</span><strong>SIMULA TU PAÍS</strong></a><nav aria-label="Secciones">${tabs.map(([id,label,ico])=>`<button aria-current="${currentTab===id||currentTab==='wizard'&&id==='lab'?'page':'false'}" data-tab="${id}" class="${currentTab===id||currentTab==='wizard'&&id==='lab'?'active':''}">${icon(ico,15)}${label}</button>`).join('')}</nav><div class="local-status-wrap"><button id="save-help" class="local-status" aria-haspopup="dialog" aria-expanded="false"><span id="save-label">${saveLabel()}</span><span class="status-dot"></span></button><section id="save-help-popover" role="dialog" aria-labelledby="save-help-title" hidden><h2 id="save-help-title">${saveLabel()}</h2><p id="save-help-text">${esc(saveHelpText())}</p><button data-action="export">Exportar simulación</button><button data-action="close-save-help">Cerrar</button></section></div></header><main>${page}<footer><span>POLIS · aplicación ${MODEL_VERSION} · modelo ${MODEL_VERSION} · catálogo ${esc(dataset.version)} · revisión ${esc(dataset.reviewed)}</span><button data-action="export">Exportar simulación ${icon('download',14)}</button></footer></main><input type="file" id="import-file" accept="application/json,.json" hidden>${dialog()}`);
+  patchHtml(`<header class="topbar"><a class="brand" href="#" data-action="home"><span class="brand-mark">S</span><strong>SIMULA TU PAÍS</strong></a><nav id="primary-navigation" class="${mobileMenuOpen?'menu-open':''}" aria-label="Secciones">${tabs.map(([id,label,ico])=>`<button aria-current="${currentTab===id||currentTab==='wizard'&&id==='lab'?'page':'false'}" data-tab="${id}" class="${currentTab===id||currentTab==='wizard'&&id==='lab'?'active':''}">${icon(ico,15)}${label}</button>`).join('')}</nav><button class="mobile-menu-toggle" type="button" data-action="menu-toggle" aria-controls="primary-navigation" aria-expanded="${mobileMenuOpen}" aria-label="${mobileMenuOpen?'Cerrar menú':'Abrir menú'}"><span></span><span></span><span></span></button><div class="local-status-wrap"><button id="save-help" class="local-status" aria-haspopup="dialog" aria-expanded="false"><span id="save-label">${saveLabel()}</span><span class="status-dot"></span></button><section id="save-help-popover" role="dialog" aria-labelledby="save-help-title" hidden><h2 id="save-help-title">${saveLabel()}</h2><p id="save-help-text">${esc(saveHelpText())}</p><button data-action="export">Exportar simulación</button><button data-action="close-save-help">Cerrar</button></section></div></header><main>${page}<footer><span>POLIS · aplicación ${MODEL_VERSION} · modelo ${MODEL_VERSION} · catálogo ${esc(dataset.version)} · revisión ${esc(dataset.reviewed)}</span><button data-action="export">Exportar simulación ${icon('download',14)}</button></footer></main><input type="file" id="import-file" accept="application/json,.json" hidden>${dialog()}`);
   for(const [cls,top]of scrolls){const e=document.getElementsByClassName(cls)[0];if(e)e.scrollTop=top;}
   if(pendingDialog)document.querySelector<HTMLButtonElement>('[data-action="cancel-dialog"]')?.focus();
   else if(dialogReturnFocus&&!busy){const origin=dialogReturnFocus;dialogReturnFocus=null;const target=document.querySelector<HTMLInputElement>('[data-policy]:not(:disabled)');if(target)target.focus();else restoreDialogFocus(origin);}
@@ -313,7 +314,7 @@ async function importFile(file:File):Promise<void> {
 root.addEventListener('click',e=>{
   const el=(e.target as Element).closest<HTMLElement>('button,a');if(!el)return;
   const tab=el.dataset.tab,ct=el.dataset.configTab,mt=el.dataset.metric,tr=el.dataset.trace,eventId=el.dataset.event,wizardValue=el.dataset.wizardValue;
-  if(tab){pause();if(currentTab==='lab'&&tab!=='lab'&&introOpen)dismissIntro();currentTab=tab==='lab'&&firstRunSetup?'wizard':tab as typeof currentTab;render();return;}
+  if(tab){mobileMenuOpen=false;pause();if(currentTab==='lab'&&tab!=='lab'&&introOpen)dismissIntro();currentTab=tab==='lab'&&firstRunSetup?'wizard':tab as typeof currentTab;render();return;}
   if(ct){configTab=ct as typeof configTab;render();return;}
   if(mt){metric=mt as Metric;render();return;}
   if(tr){selectedTrace=tr;render();document.querySelector('#causes')?.scrollIntoView({block:'nearest'});return;}
@@ -321,13 +322,14 @@ root.addEventListener('click',e=>{
   if(wizardValue!==undefined){const value=wizardValue==='keep'?null:Number(wizardValue);wizardAnswers[wizardStep]=value;wizardAnswered[wizardStep]=true;render();return;}
   if(el.id==='save-help'){e.preventDefault();toggleSaveHelp();return;}
   const action=el.dataset.action;if(!action)return;e.preventDefault();
+  if(action==='menu-toggle'){mobileMenuOpen=!mobileMenuOpen;render();return;}
   if(action==='play'){if(playing){pause();renderControls();}else if(activeBranch().state.month<MAX_MONTHS){playing=true;renderControls();schedule();}}
   if(action==='step'){pause();renderControls();void advanceTime(1);}
   if(action==='year'){pause();renderControls();void advanceTime(12);}
   if(action==='export'){const month=activeBranch().state.month;download(`polis-sesion-${exp.seed}-mes-${month}.json`,JSON.stringify(exportSession(exp,datasetHash),null,2));}
   if(action==='import')document.querySelector<HTMLInputElement>('#import-file')?.click();
   if(action==='csv')exportCSV();
-  if(action==='home'){pause();currentTab=firstRunSetup?'wizard':'lab';render();}
+  if(action==='home'){mobileMenuOpen=false;pause();currentTab=firstRunSetup?'wizard':'lab';render();}
   if(action==='dismiss-intro'){dismissIntro();setupGuidanceOpen=false;firstRunSetup=false;markConfigured();currentTab='lab';render();}
     if(action==='wizard'){dismissIntro();wizardAnswers=Array(6).fill(null);wizardAnswered=Array(6).fill(true);wizardStep=-1;currentTab='wizard';render();}
   if(action==='wizard-cancel'){currentTab='lab';dismissIntro();setupGuidanceOpen=false;firstRunSetup=false;markConfigured();persist();render();}
@@ -378,6 +380,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){pause();re
 window.addEventListener('pagehide',()=>{pause();persist();});
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
+    if(mobileMenuOpen){mobileMenuOpen=false;render();document.querySelector<HTMLButtonElement>('.mobile-menu-toggle')?.focus();return;}
     const help=document.querySelector<HTMLElement>('#save-help-popover');
     if(help&&!help.hidden){toggleSaveHelp(false);document.querySelector<HTMLButtonElement>('#save-help')?.focus();return;}
   }
