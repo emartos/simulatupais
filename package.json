@@ -1,0 +1,23 @@
+{
+  "name": "polis-espana",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Laboratorio local de escenarios para Espana. Sin IA ni servicios externos.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "start": "node scripts/serve.mjs",
+    "dev": "npm run build && npm start",
+    "test": "npm run build && node --test tests/*.test.mjs",
+    "test:regression": "node docs/playbook/verificar.mjs .",
+    "test:browser": "node tests/browser-cdp.mjs",
+    "test:full": "npm test && npm run test:regression && npm run test:browser",
+    "check:data": "node scripts/check-data.mjs"
+  },
+  "devDependencies": {
+    "typescript": "5.8.3"
+  }
+}

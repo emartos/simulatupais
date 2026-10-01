@@ -1,0 +1,34 @@
+import { selectBase, fingerprint } from './core/data.js';
+import { createExperiment, createPrimaryExperiment, advance, fork, compareFrom, configureBranch } from './core/engine.js';
+import { validatePolicy } from './core/policy.js';
+import { restoreSession, validateSession } from './core/session.js';
+import type { Dataset, Experiment, WorkerRequest, WorkerResponse } from './core/types.js';
+let experiment:Experiment|undefined;
+let hash='';
+const scope=self as unknown as { onmessage:(e:MessageEvent<WorkerRequest>)=>void; postMessage:(m:WorkerResponse)=>void };
+scope.onmessage=(event)=>{
+  const {id,type,payload}=event.data;
+  try {
+    if(type==='INIT') {
+      const p=payload as {dataset:Dataset;seed:number;policy?:unknown;primary?:boolean};
+      const base=selectBase(p.dataset);
+      hash=fingerprint(JSON.stringify(p.dataset));
+      experiment=p.primary?createPrimaryExperiment(base,p.seed,p.policy?validatePolicy(p.policy):undefined):createExperiment(base,p.seed,p.policy?validatePolicy(p.policy):undefined);
+    } else {
+      if(!experiment) throw new Error('El motor no est\u00e1 inicializado.');
+      if(type==='ADVANCE') experiment=advance(experiment,payload as number);
+      else if(type==='CONFIGURE') {
+        const request=payload&&typeof payload==='object'&&'policy' in payload?payload as {policy:unknown;branchId?:'A'|'B'}:{policy:payload,branchId:'B' as const};
+        const branchId=request.branchId||'B',branch=branchId==='A'?experiment.a:experiment.b;
+        if(branch.state.month!==experiment.forkMonth) throw new Error('La configuraci\u00f3n est\u00e1 bloqueada y en marcha. Crea una comparaci\u00f3n desde el estado actual.');
+        experiment=configureBranch(experiment,branchId,validatePolicy(request.policy));
+      } else if(type==='FORK') experiment=fork(experiment,validatePolicy(payload));
+      else if(type==='COMPARE') {const request=payload as {sourceId:'A'|'B';policy:unknown};experiment=compareFrom(experiment,request.sourceId,validatePolicy(request.policy));}
+      else if(type==='RESTORE') experiment=restoreSession(validateSession(payload,experiment.base,hash),experiment.base);
+      else throw new Error('Orden desconocida.');
+    }
+    scope.postMessage({id,ok:true,experiment});
+  } catch(error) {
+    scope.postMessage({id,ok:false,error:error instanceof Error?error.message:'Error desconocido del motor.'});
+  }
+};
