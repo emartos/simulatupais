@@ -1,0 +1,30 @@
+{
+  "mode": "UI harness: inline bundled modules, in-process worker adapter; not native HTTP/Worker/IndexedDB end-to-end",
+  "checks": [
+    "initial date from actual catalog",
+    "fallback when IndexedDB unavailable",
+    "eight economic controls",
+    "descriptive coordinate responds",
+    "year advances twelve months",
+    "configuration locks after advancing",
+    "fiction feed generated",
+    "eight mechanism traces",
+    "desktop no horizontal overflow",
+    "event dialog opens",
+    "export JSON uses replay recipe",
+    "fork unlocks controls",
+    "fork can resume",
+    "import restores prior date",
+    "model methodology visible",
+    "fourteen source records",
+    "external sources carry links",
+    "automatic replay advances",
+    "hidden document pauses",
+    "mobile 390px no horizontal overflow",
+    "mobile 360px no horizontal overflow",
+    "zero uncaught browser errors"
+  ],
+  "errors": [],
+  "browser": "144.0.7559.96",
+  "passed": 22
+}
