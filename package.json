@@ -18,6 +18,7 @@
     "check:data": "node scripts/check-data.mjs"
   },
   "devDependencies": {
+    "esbuild": "^0.28.2",
     "typescript": "5.8.3"
   }
 }
