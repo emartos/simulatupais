@@ -281,6 +281,8 @@ footer button { font-size: 11px; }
 .circle-single { fill: var(--accent); stroke: var(--panel); stroke-width: 2; }
 
 .mobile-menu-toggle { display: none; }
+.topbar nav { flex: 1; }
+.topbar nav .local-status-wrap { margin-left: auto; }
 @media (max-width: 820px) {
   .topbar {
     position: relative;
@@ -325,6 +327,12 @@ footer button { font-size: 11px; }
   }
   .topbar nav.menu-open { display: grid; }
   .topbar nav button { width: 100%; min-width: 0; min-height: 44px; justify-content: flex-start; padding: 9px 11px; font-size: 12px; white-space: normal; text-align: left; }
-  .local-status-wrap { grid-column: 1 / -1; grid-row: 2; justify-self: end; }
-  .local-status { min-height: 30px; }
+  .topbar nav .local-status-wrap {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    margin: 3px 0 0;
+    padding: 7px 2px 0;
+    border-top: 1px solid var(--line);
+  }
+  .topbar nav .local-status { width: 100%; min-height: 40px; justify-content: flex-start; padding-left: 8px; }
 }
