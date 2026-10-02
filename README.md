@@ -13,6 +13,10 @@ npm start
 
 Abre `http://127.0.0.1:5173`. No abras `dist/index.html` con `file://`. Para usar el build estático no hace falta instalar dependencias de ejecución.
 
+## Build de publicación
+
+Publica el contenido de `dist/` después de ejecutar `npm run build`; no publiques `public/` directamente. El build agrupa la aplicación y combina sus hojas de estilo para evitar la cascada de módulos y CSS observada en la versión de producción. Cada compilación regenera `dist/` desde cero para que no queden módulos obsoletos de builds anteriores.
+
 ## Uso
 
 Empieza en «Tu simulación», ajusta Economía, Instituciones u Opciones avanzadas y avanza uno o doce meses. «Configurar con preguntas» es una ruta opcional; también puedes editar directamente. Los procedimientos institucionales generan eventos descriptivos, pero no tienen efectos económicos cuantificados.
@@ -39,6 +43,10 @@ npm run test:full        # ejecuta los tres comandos anteriores en secuencia
 Las regresiones históricas solo comprueban que esta versión conserva resultados de sus recetas; no son una validación económica independiente. Las pruebas aritméticas independientes cubren identidades y unidades. La validez empírica de coeficientes y supuestos requiere evidencia externa y no se demuestra con esta suite. El test de navegador actual cubre el recorrido visible de comparación y guardado en Chromium. Firefox, cuestionario, importación/migración desde interfaz, geometría SVG/CSV y algunas ayudas aún no están automatizados.
 
 Consulta [PLAYBOOK](docs/playbook/PLAYBOOK.md) para recetas, valores de referencia, fechas y límites metodológicos, y el [informe de ejecución](docs/playbook/INFORME-EJECUCION.md) para estados PASS/BLOQUEADO, capturas y pendientes. En la aplicación, «Cómo funciona» describe ecuaciones y unidades; «Datos y fuentes» detalla procedencia y periodos.
+
+## Despliegue Apache
+
+El vhost para `simulatupais.org`, Certbot y Cloudflare está en [deploy/apache](deploy/apache/README.md).
 
 ## Alcance metodológico
 

@@ -13,11 +13,14 @@ if (!compiler || !existsSync(compiler)) {
 }
 const result = spawnSync(process.execPath, [compiler, '--project', 'tsconfig.json', '--noEmitOnError'], {stdio: 'inherit'});
 if (result.status !== 0) process.exit(result.status || 1);
+rmSync('dist', { recursive: true, force: true });
 mkdirSync('dist', { recursive: true });
 cpSync('public', 'dist', { recursive: true });
 const css = await transform(`${readFileSync('dist/style.css', 'utf8')}\n${readFileSync('dist/polish.css', 'utf8')}`, { loader: 'css', minify: true, target: 'es2022' });
 writeFileSync('dist/style.css', css.code);
+rmSync('dist/polish.css', { force: true });
 const bundledApp = 'dist/.bundled-app';
+mkdirSync('dist/app', { recursive: true });
 await build({
   entryPoints: ['src/main.ts', 'src/worker.ts'], outdir: bundledApp,
   bundle: true, minify: true, format: 'esm', platform: 'browser', target: 'es2022',
