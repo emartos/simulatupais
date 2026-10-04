@@ -50,4 +50,10 @@ El vhost para `simulatupais.org`, Certbot y Cloudflare está en [deploy/apache](
 
 ## Alcance metodológico
 
+
+## Licencia
+
+El código de POLIS se distribuye bajo PolyForm Noncommercial License 1.0.0. Consulta el archivo [LICENSE](LICENSE) para conocer los permisos y condiciones aplicables.
+
+Para usos comerciales no cubiertos por esta licencia, contacta con los responsables del proyecto para acordar una licencia comercial independiente.
 Simula tu país calcula mecanismos económicos simplificados y describe algunos procedimientos institucionales. No simula todos los efectos de todos los sistemas políticos ni reproduce íntegramente la economía española. Distribuciones de hogares, stocks iniciales sintéticos y respuestas económicas son hipótesis; los agregados observados o estimados se identifican en Datos y fuentes. Los resultados finitos no prueban plausibilidad.
