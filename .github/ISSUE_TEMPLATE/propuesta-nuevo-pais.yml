@@ -1,0 +1,70 @@
+name: Propuesta de nuevo país
+description: Propón incorporar otro país a Simula tu país dentro del proyecto común.
+title: "Propuesta de nuevo país: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        España es la primera implementación. Esta propuesta sirve para coordinar cómo integrar otro país en la arquitectura común antes de empezar un trabajo extenso. La información puede ser preliminar.
+  - type: input
+    id: country
+    attributes:
+      label: País
+      placeholder: País o territorio propuesto
+    validations:
+      required: true
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivación
+      description: ¿Qué permitiría explorar o comprender esta implementación?
+    validations:
+      required: true
+  - type: textarea
+    id: sources
+    attributes:
+      label: Fuentes de datos previstas
+      description: Incluye enlaces si ya los tienes.
+    validations:
+      required: false
+  - type: input
+    id: base-year
+    attributes:
+      label: Año de partida disponible
+      placeholder: Año o periodo, si se conoce
+    validations:
+      required: false
+  - type: textarea
+    id: indicators
+    attributes:
+      label: Indicadores principales
+      description: ¿Qué indicadores y unidades podrían estar disponibles?
+    validations:
+      required: false
+  - type: textarea
+    id: institutions
+    attributes:
+      label: Particularidades institucionales o económicas relevantes
+    validations:
+      required: false
+  - type: input
+    id: languages
+    attributes:
+      label: Idiomas
+      placeholder: Idioma o idiomas de la interfaz y las fuentes
+    validations:
+      required: false
+  - type: textarea
+    id: proposed-work
+    attributes:
+      label: Trabajo que propones realizar
+      description: Indica experiencia, disponibilidad o partes concretas que te gustaría abordar.
+    validations:
+      required: false
+  - type: textarea
+    id: engine-changes
+    attributes:
+      label: Posibles cambios requeridos en el motor común
+      description: Si todavía no lo sabes, puedes dejar este apartado vacío.
+    validations:
+      required: false

@@ -1,6 +1,12 @@
 # Simula tu país
 
-Aplicación estática para explorar una simulación económica simplificada de España. Descriptor: «Explora cómo cambia tu país». No ofrece predicciones ni recomendaciones. No contiene IA, cuentas, backend de aplicación, telemetría ni pagos. El cálculo corre en un Web Worker del navegador y el guardado usa IndexedDB local.
+Aplicación estática para explorar una simulación económica simplificada. España es la primera implementación de **Simula tu país**, un proyecto diseñado para incorporar progresivamente otros países en un repositorio y una arquitectura comunes. No ofrece predicciones ni recomendaciones. No contiene IA, cuentas, backend de aplicación, telemetría ni pagos. El cálculo corre en un Web Worker del navegador y el guardado usa IndexedDB local.
+
+## Un proyecto común para varios países
+
+El objetivo es que cada nuevo país se integre en Simula tu país y reutilice el motor y los componentes comunes. Así podemos compartir mejoras y mantener una experiencia y metodología coherentes, reduciendo divergencias entre implementaciones. La arquitectura actual todavía contiene acoplamientos específicos con España; esta es una dirección de evolución, no una capacidad multinacional ya disponible.
+
+¿Quieres proponer otro país? [Abre una propuesta en GitHub Issues](https://github.com/emartos/simulatupais/issues/new?template=propuesta-nuevo-pais.yml) o consulta [cómo colaborar](CONTRIBUTING.md) antes de empezar una implementación extensa. Preferimos coordinarla e incorporarla al proyecto común. Un fork temporal para preparar una contribución es perfectamente válido; mantener una versión independiente y divergente no es el modelo de colaboración recomendado.
 
 ## Arranque
 
@@ -13,7 +19,7 @@ npm start
 
 Abre `http://127.0.0.1:5173`. No abras `dist/index.html` con `file://`. Para usar el build estático no hace falta instalar dependencias de ejecución.
 
-## Build de publicación
+## Publicación
 
 Publica el contenido de `dist/` después de ejecutar `npm run build`; no publiques `public/` directamente. El build agrupa la aplicación y combina sus hojas de estilo para evitar la cascada de módulos y CSS observada en la versión de producción. Cada compilación regenera `dist/` desde cero para que no queden módulos obsoletos de builds anteriores.
 
@@ -44,16 +50,12 @@ Las regresiones históricas solo comprueban que esta versión conserva resultado
 
 Consulta [PLAYBOOK](docs/playbook/PLAYBOOK.md) para recetas, valores de referencia, fechas y límites metodológicos, y el [informe de ejecución](docs/playbook/INFORME-EJECUCION.md) para estados PASS/BLOQUEADO, capturas y pendientes. En la aplicación, «Cómo funciona» describe ecuaciones y unidades; «Datos y fuentes» detalla procedencia y periodos.
 
-## Despliegue Apache
-
-El vhost para `simulatupais.org`, Certbot y Cloudflare está en [deploy/apache](deploy/apache/README.md).
-
 ## Alcance metodológico
 
+Simula tu país calcula mecanismos económicos simplificados y describe algunos procedimientos institucionales. No simula todos los efectos de todos los sistemas políticos ni reproduce íntegramente la economía española. Distribuciones de hogares, stocks iniciales sintéticos y respuestas económicas son hipótesis; los agregados observados o estimados se identifican en Datos y fuentes. Los resultados finitos no prueban plausibilidad.
 
 ## Licencia
 
-El código de POLIS se distribuye bajo PolyForm Noncommercial License 1.0.0. Consulta el archivo [LICENSE](LICENSE) para conocer los permisos y condiciones aplicables.
+El código de Simula tu país se distribuye bajo PolyForm Noncommercial License 1.0.0. Consulta el archivo [LICENSE](LICENSE) para conocer los permisos y condiciones aplicables.
 
 Para usos comerciales no cubiertos por esta licencia, contacta con los responsables del proyecto para acordar una licencia comercial independiente.
-Simula tu país calcula mecanismos económicos simplificados y describe algunos procedimientos institucionales. No simula todos los efectos de todos los sistemas políticos ni reproduce íntegramente la economía española. Distribuciones de hogares, stocks iniciales sintéticos y respuestas económicas son hipótesis; los agregados observados o estimados se identifican en Datos y fuentes. Los resultados finitos no prueban plausibilidad.
