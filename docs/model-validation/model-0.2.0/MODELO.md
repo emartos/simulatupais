@@ -1,4 +1,4 @@
-# Modelo exploratorio 0.3.0
+# Modelo exploratorio 0.2.0
 
 ## Estado y tiempo
 
@@ -30,7 +30,7 @@ La inversión privada deseada depende del volumen inicial, la escala productiva,
 capital siguiente = capital actual * (1 - depreciacion/12) + inversion/12
 ```
 
-La capacidad incorpora productividad exógena, demografía, el crecimiento neto logarítmico del stock de capital completado en el periodo previo y perturbaciones de oferta. El capital se actualiza con depreciación e inversión realizada; la depreciación entra una sola vez en el stock. La contribución de capital 0,27 permanece heurística, no estimada para España. La holgura de capacidad de 5 % es un margen transitorio de utilización del modelo, no una estimación de capacidad ociosa española.
+La capacidad incorpora productividad exógena, demografía, capital previo y perturbaciones de oferta. La inversión actual afecta al capital del siguiente periodo.
 
 ### Producción y precios
 
@@ -38,7 +38,7 @@ La capacidad incorpora productividad exógena, demografía, el crecimiento neto 
 PIB real = consumo + servicios publicos + inversion + exportaciones netas
 ```
 
-El objetivo de producción es el mínimo entre demanda deseada y capacidad × 1,05; el ajuste parcial se limita además a la demanda cuando la producción heredada la supera. Sin componente de inventarios, el PIB no puede exceder demanda. Un factor entre 0 y 1 convierte proporcionalmente los componentes flexibles deseados en realizados. Bajo restricción no hay prioridades sectoriales: consumo, servicios corrientes, inversión y exportación neta comparten realización. Este cierre no es un equilibrio general ni una matriz de balances sectoriales.
+La producción se aproxima parcialmente a la demanda deseada con una restricción de capacidad. Un factor agregado convierte componentes deseados en realizados. Este cierre no es un equilibrio general ni una matriz de balances sectoriales: la adquisición de activos financieros y la financiación privada no están representadas.
 
 La dinámica de precios combina persistencia mensual de 0,97, ancla del 2 %, un proxy de holgura y perturbaciones energéticas. El 0,10 de respuesta a la brecha es una elección heurística; no hay expectativas ni una curva de Phillips estructural. La persistencia equivale a `0,97^12 ≈ 69,4 %` retenido tras doce meses y una semivida de unos 22,8 meses; no es una estimación española. En 0.1.0, `0,85^12 ≈ 14,2 %` era la retención anual, por lo que la nueva cifra corrige la escala temporal como elección provisional.
 
@@ -52,7 +52,7 @@ La tasa de paro reacciona a actividad y tendencia mediante una **regla reducida 
 saldo de deuda neta siguiente = saldo anterior + deficit anualizado/12
 ```
 
-Se separan deuda bruta y activos públicos para no representar como deuda negativa un superávit acumulado. Ingresos y gastos fiscales son cuentas sintéticas, no el presupuesto observado de España. La inversión pública es parte de la inversión total y del stock de capital; puede contribuir a capacidad con retardo vía crecimiento neto de K. `services` representa únicamente **gasto corriente en servicios públicos**: aumenta gasto y demanda, sin efecto directo de productividad/capacidad ni medida de calidad o bienestar. No se suma dos veces a inversión.
+Se separan deuda bruta y activos públicos para no representar como deuda negativa un superávit acumulado. Ingresos y gastos fiscales son cuentas sintéticas, no el presupuesto observado de España. La inversión pública es parte de la inversión total, no del consumo público, para no duplicarla.
 
 ### Demografía
 
@@ -76,14 +76,14 @@ Al omitir el cuestionario se conserva la configuración predeterminada. Responde
 
 La interfaz muestra la orientación aproximada de los cambios económicos respecto al punto de partida de la misma sesión mediante `economic-change-orientation` versión 2.0.0, definida en `src/ui/economic-axis-method.ts`. Parte sin marcador cuando no hay cambios incluidos. Para los cambios utiliza cinco dimensiones: fiscalidad directa, diferencial tributario entre grupos, transferencias, inversión pública y recursos para servicios. Las normaliza con escalas fijas y pesos iguales: convenciones descriptivas del indicador, no coeficientes estimados ni una clasificación científica validada. Describe cambios aplicados, no a la persona, y no interviene en el cálculo económico. La progresividad del motor ahora expresa directamente el cambio en puntos porcentuales del diferencial de tipo alto menos bajo; el grupo intermedio no cambia y los límites pueden recortar tipos. La auditoría de la fórmula absoluta anterior y sus límites se conserva en [la auditoría del eje anterior](AUDITORIA-EJE-ECONOMICO.md).
 
-El indicador se refiere a cambios desde la configuración inicial del experimento, no clasifica esa configuración inicial. La referencia se reconstruye con el catálogo y la versión de modelo de la sesión. Las sesiones de 0.1.0 y 0.2.0 no se cargan ni reinterpretan como 0.3.0; se rechazan explícitamente como incompatibles.
+El indicador se refiere a cambios desde la configuración inicial del experimento, no clasifica esa configuración inicial. La referencia se reconstruye con el catálogo y la versión de modelo de la sesión. Los parámetros de 0.1.0 no se cargan ni reinterpretan como 0.2.0; esa versión se rechaza explícitamente.
 
 Productividad tendencial pasa a 0,3 % anual como candidato provisional apoyado en la referencia española del Banco de España descrita en [la revisión de producción e inversión](model-validation/phase2/A-production-investment.md). No es una estimación estructural propia ni crecimiento potencial total: utilización y productividad siguen simplificadas.
 
-La composición de los tres grupos, los tipos por grupo, las propensiones al consumo, las transferencias y el presupuesto inicial continúan siendo heurística o construcción sintética. No representan deciles observados, tipos IRPF observados, un 17 % del PIB de prestaciones observadas ni un saldo fiscal que reproduzca SEC S.13. También siguen heurísticos el capital/PIB 3,2, depreciación 4 %, coeficiente 0,27 aplicado al crecimiento neto logarítmico de K, ajuste de producción 0,32 y margen transitorio de utilización de 5 %. El coeficiente 0,27 no es una elasticidad estimada para España. El exponente de inversión 1,25 y la fricción 3 también son heurísticos. Exportaciones al 2 % son una tendencia de escenario y la elasticidad agregada de importaciones 1 es simplificada. España no tiene tipo de cambio nacional; precios relativos y composición comercial se omiten. Natalidad, mortalidad y residuo demográfico permanecen constantes; el residuo no es una proyección observada de migración ni una proyección oficial a veinte años.
+La composición de los tres grupos, los tipos por grupo, las propensiones al consumo, las transferencias y el presupuesto inicial continúan siendo heurística o construcción sintética. No representan deciles observados, tipos IRPF observados, un 17 % del PIB de prestaciones observadas ni un saldo fiscal que reproduzca SEC S.13. También siguen heurísticas el capital/PIB 3,2, depreciación 4 %, contribución de capital 0,27, ajuste de producción 0,32, techo 105 %, exponente de inversión 1,25 y fricción 3. Exportaciones al 2 % son una tendencia de escenario y la elasticidad agregada de importaciones 1 es simplificada. España no tiene tipo de cambio nacional; precios relativos y composición comercial se omiten. Natalidad, mortalidad y residuo demográfico permanecen constantes; el residuo no es una proyección observada de migración ni una proyección oficial a veinte años.
 
 ## Trazabilidad y dominio
 
-Las trazas incluyen capacidad/capital y gasto corriente de servicios con sus entradas, ecuación, explicación, resultado y unidades, además de los mecanismos existentes. Los eventos históricos conservan texto y mecanismos asociados; el diálogo no mezcla sus valores con los del último mes. Para recuperar una traza pasada hay que reproducir hasta ese mes; no se incluye aún navegación retrospectiva de trazas en la interfaz.
+Ocho mecanismos dejan sus entradas, ecuación, explicación, resultado y unidad en el último estado. Los eventos históricos conservan texto y mecanismos asociados; el diálogo no mezcla sus valores con los del último mes. Para recuperar una traza pasada hay que reproducir hasta ese mes; no se incluye aún navegación retrospectiva de trazas en la interfaz.
 
 Los avisos de dominio indican cuando se alcanza un límite numérico. Un estado finito no equivale a un escenario plausible. La suite comprueba implementación y coherencia interna, no validez empírica. No hay ajuste econométrico, validación externa, intervalos de confianza ni justificación predictiva para veinte años.
