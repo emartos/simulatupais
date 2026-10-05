@@ -1,20 +1,20 @@
-# Simula tu país — Playbook de pruebas model 0.3.0
+# Simula tu país — Playbook de pruebas model 0.2.0
 
 ## 1. Alcance y estado de verificación
 
-Este playbook describe las siete recetas activas y sus expectativas de regresión para el modelo 0.3.0. Las recetas y expectativas 0.2.0 permanecen en `evidencias/model-0.2.0/`, `sesiones/model-0.2.0/` y `oracles/model-0.2.0/`; la evidencia 0.1.0 también se conserva por separado.
+Este playbook describe las siete recetas activas y sus expectativas de regresión para el modelo 0.2.0. Las cifras históricas de 0.1.0 se conservan por separado en `evidencias/resultados-model-0.1.0.json` y las sesiones archivadas.
 
-Las expectativas activas 0.3.0 se regeneraron deliberadamente después de las pruebas estructurales de capital/capacidad, cierre de producción y revisión de S13/S10. La razón económica concreta es el uso del crecimiento neto de K en capacidad y el cierre de demanda con realización acotada; `services` se define como gasto corriente y queda separado de inversión pública.
+Las expectativas 0.2.0 se regeneraron deliberadamente solo después de pasar las pruebas matemáticas y los sanity checks de la versión. Se conservó íntegra la batería 0.1.0. La suite actual pasa 68 pruebas unitarias, 7 escenarios de regresión, 27 fechas y 3.282 comparaciones numéricas; el navegador comprueba además los escenarios E2E desde la interfaz.
 
 **Son expectativas de regresión del software actual, no predicciones de España, recomendaciones de política ni validación empírica del modelo.** Una regresión estable puede conservar un modelo equivocado: por eso se separan las instantáneas numéricas de las identidades y de la revisión metodológica.
 
-Modelo activo: 0.3.0. La regresión ejecuta 7 recetas en 27 fechas; el generador deliberado es `generar-oraculos-0.3.0.mjs`. Resultados de cada comando se registran en el informe final de esta versión.
+Estado actual model 0.2.0: `make build`, `npm test` (68 pruebas), `npm run test:regression` (7 escenarios, 27 fechas, 3.282 comparaciones) y `npm run test:browser` pasan; este último usa Chromium real, HTTP, Web Worker nativo e IndexedDB. El recorrido comprueba aviso visible a 360/390/1280 px, cancelar/confirmar comparación, cambio, avance, persistencia, recarga y pausa. Capturas del aviso a 360 y 1280 px están en `artifacts/`. Firefox, el cuestionario, geometría SVG/CSV, importación desde la interfaz y ayudas táctiles no se han ejecutado como E2E y quedan **pendientes**, no aprobados. No se dispone en el paquete recibido de los trece comentarios UX separados para relacionarlos individualmente.
 
 ## 2. Preparación reproducible
 
 | Elemento | Valor fijado para esta batería |
 |---|---|
-| Aplicación / modelo | 0.3.0 |
+| Aplicación / modelo | 0.2.0 |
 | Catálogo | `es-reviewed-2026-09-30.1` |
 | Huella interna del catálogo | `68504b65` |
 | Semilla | `1847` |

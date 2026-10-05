@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "id": "E02-P03-m60",
+  "approval": "Aprobado para regresión de software tras revisión técnica reproducible; no es validación empírica ni aprobación metodológica del modelo.",
+  "modelVersion": "0.1.0",
+  "catalogVersion": "es-reviewed-2026-09-30.1",
+  "catalogHash": "68504b65",
+  "baseYear": 2025,
+  "seed": 1847,
+  "recipe": "P03",
+  "sourceFixture": "docs/playbook/sesiones/02-consumo-15.json",
+  "initialPolicySource": "docs/playbook/sesiones/00-base.json",
+  "initialPolicy": {
+    "taxShift": 0,
+    "progressivity": 0,
+    "consumptionTax": 11,
+    "corporateTax": 20,
+    "transfers": 0,
+    "publicInvestment": 3,
+    "services": 19.201875489641495,
+    "investmentFriction": 0,
+    "termMonths": 48,
+    "elections": "competitive",
+    "expression": true,
+    "judicialReview": true
+  },
+  "changes": { "consumptionTax": { "from": 11, "to": 15, "unit": "%" } },
+  "seriesMapping": {
+    "A": { "meaning": "configuración de referencia", "runtimeBranch": "B", "csvColumn": "Tu simulación" },
+    "B": { "meaning": "P03 con el cambio aplicado", "runtimeBranch": "A", "csvColumn": "Alternativa" }
+  },
+  "appliedAtMonth": 0,
+  "horizonMonth": 60,
+  "date": "dic 2030",
+  "metricUnits": {
+    "gdp": "miles de millones de euros del año de partida, ritmo anualizado",
+    "purchasingPower": "euros por persona y año, media de hogares simulados",
+    "inflation": "porcentaje interanual frente al mismo mes del año anterior",
+    "unemployment": "porcentaje de población activa",
+    "debtRatio": "deuda al cierre / PIB nominal anualizado, porcentaje",
+    "investment": "miles de millones de euros del año de partida, flujo anualizado"
+  },
+  "tolerance": "Raw CSV numbers are asserted at 1e-9 relative tolerance; rendered table/cards use half their last displayed digit (±0.05, purchasing power ±0.5).",
+  "candidateReview": {
+    "method": "Candidate values were exported through the browser UI (CSV action) on two clean Chromium profiles using HTTP, the production build, native Worker and IndexedDB. No session import or direct engine call produced the candidate.",
+    "runs": 2,
+    "candidateRowsSha256": "3e7062417bfe065c6a25d2ff6a6b77b4b253515c7a3ca0c7d6dc4ba50a102a8e",
+    "review": [
+      "Month 12 from this UI recipe matches the already-approved P03 values exactly for all six displayed series, confirming A/B ordering and the recipe applied.",
+      "The unchanged branch at month 60 matches the approved baseline P01 month-60 values exactly.",
+      "The P03 playbook level identity is preserved by the implementation: consumer/producer price level factor is 1.15/1.11, applied once rather than compounded monthly.",
+      "The two independent UI runs returned identical raw month-60 rows."
+    ],
+    "reviewer": "Codex technical review; no independent human sign-off was provided.",
+    "limitations": "Approval fixes a reproducible application result for regression. It does not validate the economic assumptions, causal interpretation, or empirical plausibility."
+  },
+  "snapshots": [
+    {
+      "month": 60,
+      "date": "dic 2030",
+      "A": { "point": { "month": 60, "gdp": 1846.6384444663192, "purchasingPower": 24700.92263973357, "inflation": 1.9191166835551554, "unemployment": 10.53072339560788, "debtRatio": 97.66568498258506, "investment": 401.38983975775676 } },
+      "B": { "point": { "month": 60, "gdp": 1800.3127700487519, "purchasingPower": 23253.319206593187, "inflation": 1.4136936295285896, "unemployment": 11.089666797079957, "debtRatio": 93.87719891237865, "investment": 399.9489036448895 } }
+    }
+  ]
+}

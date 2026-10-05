@@ -1,0 +1,198 @@
+{
+  "schema": 1,
+  "id": "E05-fork-m36",
+  "approval": "Aprobado para regresión de software tras revisión técnica reproducible; no es validación empírica ni aprobación metodológica.",
+  "modelVersion": "0.3.0",
+  "catalogVersion": "es-reviewed-2026-09-30.1",
+  "catalogHash": "68504b65",
+  "baseYear": 2025,
+  "seed": 1847,
+  "recipe": "P02 aplicada como bifurcación en el mes 36",
+  "sourceFixture": "docs/playbook/sesiones/00-base.json",
+  "initialPolicySource": "docs/playbook/sesiones/00-base.json",
+  "initialPolicy": {
+    "taxShift": 0,
+    "progressivity": 0,
+    "consumptionTax": 11,
+    "corporateTax": 20,
+    "transfers": 0,
+    "publicInvestment": 3,
+    "services": 19.201875489641495,
+    "investmentFriction": 0,
+    "termMonths": 48,
+    "elections": "competitive",
+    "expression": true,
+    "judicialReview": true
+  },
+  "changes": {
+    "taxShift": {
+      "from": 0,
+      "to": 4,
+      "unit": "pp",
+      "runtimeBranch": "A"
+    }
+  },
+  "seriesMapping": {
+    "A": {
+      "meaning": "trayectoria de origen sin cambios",
+      "runtimeBranch": "B",
+      "csvColumn": "Tu simulación"
+    },
+    "B": {
+      "meaning": "trayectoria alternativa con taxShift +4 pp",
+      "runtimeBranch": "A",
+      "csvColumn": "Alternativa"
+    }
+  },
+  "forkMonth": 36,
+  "appliedAtMonth": 36,
+  "effectiveFromMonth": 37,
+  "horizons": [
+    36,
+    37,
+    48,
+    96
+  ],
+  "metricUnits": {
+    "gdp": "miles de millones de euros del año de partida, ritmo anualizado",
+    "purchasingPower": "euros por persona y año, media de hogares simulados",
+    "inflation": "porcentaje interanual frente al mismo mes del año anterior",
+    "unemployment": "porcentaje de población activa",
+    "debtRatio": "deuda al cierre / PIB nominal anualizado, porcentaje",
+    "investment": "miles de millones de euros del año de partida, flujo anualizado"
+  },
+  "tolerance": "Raw CSV numbers are asserted at 1e-9 relative tolerance; rendered table/cards use half their last displayed digit (±0.05, purchasing power ±0.5). Pre-fork equality is exact in displayed history and exact in the UI CSV at month 36.",
+  "candidateReview": {
+    "method": "Golden browser 0.3.0 regenerado desde receta pública fijada tras sanity checks. Cambio justificado por crecimiento neto de K en capacidad y cierre de producción con realización acotada; services se documenta como gasto corriente.",
+    "runs": 1,
+    "review": [
+      "Expectativa de reproducibilidad del software 0.3.0; no es validación empírica.",
+      "Versión, catálogo, año base, semilla y política inicial permanecen fijados."
+    ],
+    "reviewer": "Codex — revisión técnica; sin aprobación humana independiente.",
+    "limitations": "Refleja ecuaciones heurísticas de 0.3.0; no valida causalidad ni pronósticos reales."
+  },
+  "snapshots": [
+    {
+      "month": 36,
+      "date": "dic 2028",
+      "A": {
+        "point": {
+          "month": 36,
+          "gdp": 1770.185735699584,
+          "nominal": 1909.9083838821643,
+          "inflation": 2.360535415834719,
+          "unemployment": 10.272692559257264,
+          "debtRatio": 97.83901318610981,
+          "purchasingPower": 24094.392734755376,
+          "population": 50915431.31457053,
+          "investment": 381.1039997520989
+        }
+      },
+      "B": {
+        "point": {
+          "month": 36,
+          "gdp": 1770.185735699584,
+          "nominal": 1909.9083838821643,
+          "inflation": 2.360535415834719,
+          "unemployment": 10.272692559257264,
+          "debtRatio": 97.83901318610981,
+          "purchasingPower": 24094.392734755376,
+          "population": 50915431.31457053,
+          "investment": 381.1039997520989
+        }
+      }
+    },
+    {
+      "month": 37,
+      "date": "ene 2029",
+      "A": {
+        "point": {
+          "month": 37,
+          "gdp": 1764.486768873866,
+          "nominal": 1907.377936828616,
+          "inflation": 2.349862001729308,
+          "unemployment": 10.365644199130829,
+          "debtRatio": 98.24174698317742,
+          "purchasingPower": 24111.90760735829,
+          "population": 50953300.460868806,
+          "investment": 382.721344495193
+        }
+      },
+      "B": {
+        "point": {
+          "month": 37,
+          "gdp": 1741.0547754807217,
+          "nominal": 1882.0421181180166,
+          "inflation": 2.349521446344971,
+          "unemployment": 10.6597565499993,
+          "debtRatio": 99.37970165643665,
+          "purchasingPower": 23196.55341588966,
+          "population": 50953300.460868806,
+          "investment": 382.721344495193
+        }
+      }
+    },
+    {
+      "month": 48,
+      "date": "dic 2029",
+      "A": {
+        "point": {
+          "month": 48,
+          "gdp": 1800.681701055704,
+          "nominal": 1987.0760990868323,
+          "inflation": 2.2783822521965202,
+          "unemployment": 10.16103648781685,
+          "debtRatio": 97.0839225370839,
+          "purchasingPower": 24290.779985056277,
+          "population": 51371724.62730003,
+          "investment": 385.4681165732615
+        }
+      },
+      "B": {
+        "point": {
+          "month": 48,
+          "gdp": 1756.994543327918,
+          "nominal": 1938.1491120968633,
+          "inflation": 2.2405260996835707,
+          "unemployment": 10.701369962573862,
+          "debtRatio": 97.16670392094996,
+          "purchasingPower": 22811.33960029596,
+          "population": 51371724.62730003,
+          "investment": 384.482225768992
+        }
+      }
+    },
+    {
+      "month": 96,
+      "date": "dic 2033",
+      "A": {
+        "point": {
+          "month": 96,
+          "gdp": 1934.1375221438177,
+          "nominal": 2331.3087616424446,
+          "inflation": 2.2668979364818487,
+          "unemployment": 9.64460998440898,
+          "debtRatio": 94.02042007375829,
+          "purchasingPower": 25173.424796601947,
+          "population": 53238158.02942457,
+          "investment": 406.1851137798107
+        }
+      },
+      "B": {
+        "point": {
+          "month": 96,
+          "gdp": 1883.5819862243284,
+          "nominal": 2254.69357229757,
+          "inflation": 2.050042958696352,
+          "unemployment": 10.227306962294987,
+          "debtRatio": 85.41821340070773,
+          "purchasingPower": 23589.146955208107,
+          "population": 53238158.02942457,
+          "investment": 404.60355725105825
+        }
+      }
+    }
+  ],
+  "shocksEnabled": true
+}

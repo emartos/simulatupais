@@ -1,24 +1,21 @@
 {
-  "appVersion": "0.1.0",
-  "node": "v22.16.0",
+  "appVersion": "0.3.0",
+  "node": "v25.2.1",
   "seed": 1847,
   "baseYear": 2025,
   "datasetVersion": "es-reviewed-2026-09-30.1",
   "datasetHash": "68504b65",
+  "reason": "Reformulación neta de capacidad desde stock K; cierre de PIB sin inventarios con realización acotada; redefinición semántica de services como gasto corriente.",
   "files": {
-    "src/main.ts": "042b29f5456b21b1e0a04ed3e1b5140cdba2606b166d49baeaf1f037a8e8ce06",
-    "public/style.css": "e0f6d74177027f82256fc2f3a189b60703385da62b52e3933f0dc2c22cbb536b",
-    "src/core/engine.ts": "2cdce637e89bab0d166e5c4e03ae38acbe63eea1e930dd62a1ac74c8e83b176d",
-    "src/core/model.ts": "2ef8d38a5aabf1e92e3d306c0f6431cf14d26d5c5d68e5c72f396e2335970aad",
-    "src/core/policy.ts": "4b3eca27984bcfe8a5e3c83883ae2493b760064b5140b4dd2ab2a399c62bbc56",
-    "src/core/data.ts": "ce6cbcd819b48a32775c5891baa84ea2e36504dd62d1d6928ed446b2f21d6a87",
-    "src/core/session.ts": "bbb988d2cfbad6a0dd4bd7ff99d11b80835267d8787d9875203cdb312d225151",
-    "src/worker.ts": "0292e2afd547722d2b352356431e9a579c87f77d53cdc1b5b8e7d69ef634ada7",
+    "src/core/engine.ts": "8f59bcf41bb7a946886bdda31094867bdda5b9019d5d70e5dead15d9465cd9de",
+    "src/core/model.ts": "a281696c66c570a1cffe24524543045cbf3805e0aac2454b5ab92d2afbd1404a",
+    "src/core/types.ts": "309ecde8787b5f70eb234b07e752dfa8021da02d2ea2e1b778ee515da50356ac",
+    "src/main.ts": "2978ae88c4ddbaac920ffb2fc7c22a5413ed014f918842863ef0bc0b292d05fe",
+    "src/ui/wizard.ts": "c7a68ffc4734d2f295eb3dd199b1abc63aa59365035868dd5f81efaf54165aab",
+    "src/ui/economic-decisions.ts": "8231e327f8d5bf0698c723c72e16169ce08941ed5d30b0d5334bcca153268d58",
     "public/data/spain.json": "770afa37d94860e954b052c6b28590cf70a233daa0447d6328fc525f4090b3f0",
-    "dist/data/spain.json": "770afa37d94860e954b052c6b28590cf70a233daa0447d6328fc525f4090b3f0",
-    "dist/app/core/engine.js": "fc0aba52e32c22fcd3b736f2c7134fa1b664f42d0307c42b9d377a0cbf1f5d72",
-    "dist/app/core/model.js": "ddf54120625a05bb971e47ef7c4a2b9bcc0e28ae6e791d36a24e8f643fd73557",
-    "dist/app/main.js": "debf1e4622076873a2e26ee8b790af5aa7e17d4f6021b5b41b2c39cef5e0ceee"
-  },
-  "sourceArchiveSHA256": "f302b87c81494cea9bc7fd5b40f07d157ebc7bed54c096848cb5d4cf8a7fc9f0"
+    "dist/app/core/engine.js": "3ce92ff44eb913fd49d874d55b8804cb40205476474e81d39d4017bdd3f03bc7",
+    "dist/app/core/model.js": "d1e619e30ef27abe024e4a9eb4e57024fa7c1f67514bfe1f331bef1dbf616f85",
+    "dist/app/main.js": "0464072b6691a65f73a4b5e8d6bd23b1413ff45375e1fee378b639fa35b6e2c5"
+  }
 }

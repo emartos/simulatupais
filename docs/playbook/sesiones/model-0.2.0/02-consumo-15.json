@@ -1,6 +1,6 @@
 {
   "schema": 1,
-  "modelVersion": "0.3.0",
+  "modelVersion": "0.2.0",
   "datasetVersion": "es-reviewed-2026-09-30.1",
   "datasetHash": "68504b65",
   "seed": 1847,
@@ -9,7 +9,7 @@
   "policy": {
     "taxShift": 0,
     "progressivity": 0,
-    "consumptionTax": 11,
+    "consumptionTax": 15,
     "corporateTax": 20,
     "transfers": 0,
     "publicInvestment": 3,

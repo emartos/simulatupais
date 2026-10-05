@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "id": "E05-fork-m36",
+  "approval": "Aprobado para regresión de software tras revisión técnica reproducible; no es validación empírica ni aprobación metodológica.",
+  "modelVersion": "0.1.0",
+  "catalogVersion": "es-reviewed-2026-09-30.1",
+  "catalogHash": "68504b65",
+  "baseYear": 2025,
+  "seed": 1847,
+  "recipe": "P02 aplicada como bifurcación en el mes 36",
+  "sourceFixture": "docs/playbook/sesiones/00-base.json",
+  "initialPolicySource": "docs/playbook/sesiones/00-base.json",
+  "initialPolicy": {
+    "taxShift": 0,
+    "progressivity": 0,
+    "consumptionTax": 11,
+    "corporateTax": 20,
+    "transfers": 0,
+    "publicInvestment": 3,
+    "services": 19.201875489641495,
+    "investmentFriction": 0,
+    "termMonths": 48,
+    "elections": "competitive",
+    "expression": true,
+    "judicialReview": true
+  },
+  "changes": { "taxShift": { "from": 0, "to": 4, "unit": "pp", "runtimeBranch": "A" } },
+  "seriesMapping": {
+    "A": { "meaning": "trayectoria de origen sin cambios", "runtimeBranch": "B", "csvColumn": "Tu simulación" },
+    "B": { "meaning": "trayectoria alternativa con taxShift +4 pp", "runtimeBranch": "A", "csvColumn": "Alternativa" }
+  },
+  "forkMonth": 36,
+  "appliedAtMonth": 36,
+  "effectiveFromMonth": 37,
+  "horizons": [36, 37, 48, 96],
+  "metricUnits": {
+    "gdp": "miles de millones de euros del año de partida, ritmo anualizado",
+    "purchasingPower": "euros por persona y año, media de hogares simulados",
+    "inflation": "porcentaje interanual frente al mismo mes del año anterior",
+    "unemployment": "porcentaje de población activa",
+    "debtRatio": "deuda al cierre / PIB nominal anualizado, porcentaje",
+    "investment": "miles de millones de euros del año de partida, flujo anualizado"
+  },
+  "tolerance": "Raw CSV numbers are asserted at 1e-9 relative tolerance; rendered table/cards use half their last displayed digit (±0.05, purchasing power ±0.5). Pre-fork equality is exact in displayed history and exact in the UI CSV at month 36.",
+  "candidateReview": {
+    "method": "Fork and tax change were created through public UI actions on two clean Chromium profiles using HTTP, the production build, native Worker and IndexedDB. Full precision was read from CSV exported through the UI. No session import or direct engine call produced the candidates.",
+    "runs": 2,
+    "candidateRowsSha256": "3e7062417bfe065c6a25d2ff6a6b77b4b253515c7a3ca0c7d6dc4ba50a102a8e",
+    "review": [
+      "Both branches have identical values and dates through month 36; the fork copies the displayed state without changing the past.",
+      "The alternative branch applies the P02 taxShift=4 recipe at the fork; month 37 is the first post-fork observation. The original branch retains taxShift=0.",
+      "The old P07 golden is a distinct fork at month 12 and is not reused as if it described this month-36 scenario.",
+      "At months 37, 48, and 96 both histories retain the shared prefix and exhibit post-fork differences; all six UI series match across two independent runs.",
+      "The two independent UI runs returned identical raw rows at all four requested horizons."
+    ],
+    "reviewer": "Codex technical review; no independent human sign-off was provided.",
+    "limitations": "Approval fixes a reproducible application result for regression. It does not validate the economic assumptions, causal interpretation, or empirical plausibility."
+  },
+  "snapshots": [
+    { "month": 36, "date": "dic 2028", "A": { "point": { "month": 36, "gdp": 1776.9202068887037, "purchasingPower": 24191.846662187272, "inflation": 1.8000016675675523, "unemployment": 10.585154854673934, "debtRatio": 98.89622806818895, "investment": 387.107856547598 } }, "B": { "point": { "month": 36, "gdp": 1776.9202068887037, "purchasingPower": 24191.846662187272, "inflation": 1.8000016675675523, "unemployment": 10.585154854673934, "debtRatio": 98.89622806818895, "investment": 387.107856547598 } } },
+    { "month": 37, "date": "ene 2029", "A": { "point": { "month": 37, "gdp": 1775.3363274670405, "purchasingPower": 24212.6744079581, "inflation": 1.8035881922257468, "unemployment": 10.637783766846729, "debtRatio": 99.10711581261229, "investment": 389.77716191538167 } }, "B": { "point": { "month": 37, "gdp": 1767.809563384241, "purchasingPower": 23294.180777424604, "inflation": 1.8002516475909225, "unemployment": 10.731253843444605, "debtRatio": 99.34813791848764, "investment": 393.3459259521172 } } },
+    { "month": 48, "date": "dic 2029", "A": { "point": { "month": 48, "gdp": 1810.951181377959, "purchasingPower": 24434.45830386936, "inflation": 1.883480979880292, "unemployment": 10.563924560144185, "debtRatio": 98.32178999604152, "investment": 393.82595674532416 } }, "B": { "point": { "month": 48, "gdp": 1769.370600327539, "purchasingPower": 22988.500827388336, "inflation": 1.652846820118925, "unemployment": 11.074947853243454, "debtRatio": 98.51598674088149, "investment": 393.1484856950985 } } },
+    { "month": 96, "date": "dic 2033", "A": { "point": { "month": 96, "gdp": 1957.7335146976216, "purchasingPower": 25483.78829515205, "inflation": 2.0251119120451966, "unemployment": 10.433839481467048, "debtRatio": 95.69928254152596, "investment": 424.7304562645221 } }, "B": { "point": { "month": 96, "gdp": 1906.5681253897692, "purchasingPower": 23885.93359734568, "inflation": 1.4969658250898021, "unemployment": 11.016456707390484, "debtRatio": 88.54681364526165, "investment": 423.14156492431374 } } }
+  ]
+}
