@@ -4,12 +4,21 @@ import { externalAt } from './random.js';
 import type { Base, Branch, Experiment, External, Household, Point, Policy, SimEvent, State, Trace } from './types.js';
 const clamp=(v:number,min:number,max:number)=>Math.min(max,Math.max(min,v));
 const sum=(xs:number[])=>xs.reduce((a,b)=>a+b,0);
+export function netCapitalGrowth(previousCapital:number,currentCapital:number):number {
+  if(!(previousCapital>0&&currentCapital>0&&Number.isFinite(previousCapital)&&Number.isFinite(currentCapital)))throw new Error('El crecimiento del capital requiere stocks positivos y finitos.');
+  return Math.log(currentCapital/previousCapital);
+}
+export function capitalCapacityContribution(growth:number):number {return M.capitalElasticity*growth;}
+export function advanceCapitalStock(previousCapital:number,investmentAnnualized:number,depreciationAnnual=M.depreciation):number {
+  return previousCapital*(1-depreciationAnnual/12)+investmentAnnualized/12;
+}
 export function householdBudget(gdpNominal:number,population:number,consumerPrice:number,policy:Policy,scale=1):Household[] {
   const labels=['Grupo de renta inferior','Grupo de renta intermedia','Grupo de renta superior'];
   return labels.map((label,i)=>{
     const populationShare=M.populationShares[i]!;
     const gross=gdpNominal*M.grossIncomeShare*M.incomeShares[i]!;
-    const shift=policy.taxShift/100 + (i===0?-0.5:i===2?1:0)*policy.progressivity/100;
+    const progressivityShift=i===0?-policy.progressivity/2:i===2?policy.progressivity/2:0;
+    const shift=(policy.taxShift+progressivityShift)/100;
     const tax=gross*clamp(M.effectiveIncomeTaxes[i]!+shift,0,.65);
     const transfers=gdpNominal*M.transferGDPShare*(1+policy.transfers/100)*M.transferShares[i]!;
     const disposable=gross-tax+transfers;
@@ -28,9 +37,9 @@ export function initialState(base:Base):State {
   const revenue=sum(households.map(h=>h.tax))+y*(M.socialContributionShare+M.otherRevenueShare+M.corporateProfitShare*M.baselineCorporateTax)+v.consumption!*M.baselineConsumptionTax/(1+M.baselineConsumptionTax);
   const publicInvestment=y*M.baselinePublicInvestment;
   const spending=v.services!+publicInvestment+sum(households.map(h=>h.transfers))+v.debt!*M.debtInterest;
-  return {month:0,population:v.population!,gdpReal:y,gdpNominal:y,producerPrice:1,consumerPrice:1,
+  return {month:0,population:v.population!,gdpReal:y,gdpNominal:y,producerPrice:1,consumerPrice:1,consumptionTaxFactor:1,consumptionTaxRate:M.baselineConsumptionTax*100,
     inflation:v.inflation!,underlyingInflation:v.inflation!,priceMemory:Array.from({length:13},(_,i)=>Math.pow(1+v.inflation!,(i-12)/12)),
-    capacity:y,capital:y*M.capitalOutputRatio,unemployment:v.unemployment!,debt:v.debt!,publicAssets:0,
+    capacity:y,capital:y*M.capitalOutputRatio,capitalGrowth:0,unemployment:v.unemployment!,debt:v.debt!,publicAssets:0,
     revenue,spending,deficit:spending-revenue,consumption:v.consumption!,services:v.services!,investment:v.investment!,publicInvestment,netExports:v.exports!-v.imports!,
     households,trace:[],constraints:[]};
 }
@@ -48,8 +57,10 @@ function stepState(base:Base,old:State,policy:Policy,external:External):State {
   const population=old.population+births-deaths+residual;
   record('population','Balance demogr\u00e1fico','P(t+1) = P(t) + nacimientos - defunciones + residual','Tasas constantes hipot\u00e9ticas. El residual incluye movilidad y ajustes estad\u00edsticos; no es una medici\u00f3n de migraci\u00f3n neta.',{poblacion:old.population,nacimientos:births,defunciones:deaths,residual},population,'personas');
   const scale=consumptionScale(base);
-  const consumerTaxMultiplier=(1+policy.consumptionTax/100)/(1+M.baselineConsumptionTax);
-  const provisionalConsumerPrice=old.producerPrice*consumerTaxMultiplier;
+  const grossUp=(1+policy.consumptionTax/100)/(1+M.baselineConsumptionTax);
+  const consumerTaxFactor=1+M.consumptionTaxPassThrough*(grossUp-1);
+  const consumerTaxMultiplier=consumerTaxFactor;
+  const provisionalConsumerPrice=old.producerPrice*consumerTaxFactor;
   const budgets=householdBudget(old.gdpNominal,population,provisionalConsumerPrice,policy,scale);
   const consumptionDesired=sum(budgets.map(h=>h.consumption))/provisionalConsumerPrice;
   const baseline=householdBudget(old.gdpNominal,population,provisionalConsumerPrice,baselinePolicy(base),scale);
@@ -63,7 +74,7 @@ function stepState(base:Base,old:State,policy:Policy,external:External):State {
   const privateInvestment=baselinePrivate*capacityScale*returnFactor*frictionFactor;
   const publicInvestmentDesired=old.gdpReal*policy.publicInvestment/100;
   const investmentDesired=privateInvestment+publicInvestmentDesired;
-  record('investment','Decisi\u00f3n de inversi\u00f3n','I privada = I base * escala * rentabilidad^elasticidad * exp(-friccion * coeficiente)','La rentabilidad despu\u00e9s del impuesto y el coste de invertir alteran la inversi\u00f3n. Magnitudes hipot\u00e9ticas; sin penalizaci\u00f3n por ideolog\u00eda.',{inversionPrivadaBase:baselinePrivate,escalaCapacidad:capacityScale,factorRentabilidad:returnFactor,factorFriccion:frictionFactor,inversionPublica:publicInvestmentDesired},investmentDesired,'miles de millones EUR constantes/a\u00f1o');
+  record('investment','Inversión privada y pública','I total deseada = I privada deseada + inversión pública deseada','La rentabilidad después del impuesto y la fricción alteran la inversión privada. La inversión pública entra en inversión total, stock de capital y, con retardo, capacidad; el gasto corriente en servicios no entra en este canal. Magnitudes hipotéticas, no elasticidades estimadas.',{inversionPrivadaBase:baselinePrivate,escalaCapacidad:capacityScale,factorRentabilidad:returnFactor,factorFriccion:frictionFactor,inversionPrivadaDeseada:privateInvestment,inversionPublicaDeseada:publicInvestmentDesired},investmentDesired,'miles de millones EUR constantes/año');
   const servicesDesired=old.gdpReal*policy.services/100;
   const domestic=consumptionDesired+servicesDesired+investmentDesired;
   const domesticBase=v.consumption!+v.services!+v.investment!;
@@ -72,30 +83,40 @@ function stepState(base:Base,old:State,policy:Policy,external:External):State {
   const netExportsDesired=exports-imports;
   const demand=domestic+netExportsDesired;
   if (!(demand>0)) throw new Error('La demanda agregada ha salido del dominio del modelo.');
+  // Complete the stock identity with the investment realized in the previous
+  // period before calculating this period's productive capacity.
+  const capital=advanceCapitalStock(old.capital,old.investment);
+  const capitalGrowth=netCapitalGrowth(old.capital,capital);
   const potentialGrowth=M.productivityGrowth/12+popGrowth*0.35/12;
-  const capitalEffect=M.capitalElasticity*(old.investment/12/old.capital-M.depreciation/12);
+  const capitalEffect=capitalCapacityContribution(capitalGrowth);
   const capacity=old.capacity*Math.exp(potentialGrowth+capitalEffect+external.supply);
+  record('capacity','Capacidad productiva','ln(Capacidad(t)/Capacidad(t−1)) = productividad + demografía + elasticidad × crecimiento neto de K(t) + shock de oferta','La inversión realizada en el periodo anterior completa el stock al inicio de este paso. Su crecimiento neto afecta ahora a capacidad; la depreciación entra una sola vez dentro de K.',{capitalAnterior:old.capital,inversionRealizadaAnterior:old.investment,capitalActual:capital,crecimientoNetoCapital:capitalGrowth,contribucionCapital:capitalEffect,crecimientoProductividadMensual:M.productivityGrowth/12,crecimientoDemograficoMensual:popGrowth*0.35/12,choqueOferta:external.supply,capacidadAnterior:old.capacity},capacity,'miles de millones EUR constantes/año');
   const target=Math.min(demand,capacity*(1+M.capacityHeadroom));
-  const gdpReal=old.gdpReal+M.outputAdjustment*(target-old.gdpReal);
-  const realization=gdpReal/demand;
+  const gdpCandidate=old.gdpReal+M.outputAdjustment*(target-old.gdpReal);
+  // No inventory component exists: output cannot exceed desired demand.
+  const gdpReal=Math.min(demand,Math.max(0,gdpCandidate));
+  const realization=clamp(gdpReal/demand,0,1);
   const consumption=consumptionDesired*realization;
   const services=servicesDesired*realization;
   const investment=investmentDesired*realization;
   const publicInvestment=publicInvestmentDesired*realization;
   const netExports=netExportsDesired*realization;
   if (demand>capacity*(1+M.capacityHeadroom)) constraints.push('Demanda superior al l\u00edmite de capacidad; racionamiento proporcional simplificado.');
-  record('output','Demanda y capacidad productiva','Y = C + G + I + X - M; ajuste parcial limitado por capacidad','Las compras deseadas se convierten en cantidades realizadas mediante un factor com\u00fan. Es un cierre agregado, no un modelo de equilibrio general ni contabilidad sectorial completa.',{consumo:consumption,servicios:services,inversion:investment,exportacionNeta:netExports,demanda:demand,capacidad:capacity,factorRealizacion:realization},gdpReal,'miles de millones EUR constantes/a\u00f1o');
+  record('output','Demanda y capacidad productiva','Y = C + G + I + X - M; ajuste parcial limitado por capacidad y por demanda deseada','Las compras deseadas se convierten en cantidades realizadas mediante un factor común de 0 a 1. No se crean compras cuando la producción heredada supera la demanda deseada; no se modelan inventarios. Bajo restricción, el cierre agregado raciona proporcionalmente los componentes flexibles.',{consumoDeseado:consumptionDesired,consumoRealizado:consumption,serviciosDeseados:servicesDesired,serviciosRealizados:services,inversionDeseada:investmentDesired,inversionRealizada:investment,exportacionNetaDeseada:netExportsDesired,exportacionNetaRealizada:netExports,demanda:demand,capacidad:capacity,factorRealizacion:realization},gdpReal,'miles de millones EUR constantes/año');
+  const baselineServicesDesired=old.gdpReal*baselinePolicy(base).services/100;
+  const servicesReferenceRealized=baselineServicesDesired*realization;
+  record('services','Gasto corriente en servicios públicos','Deseado = PIB real anterior × porcentaje configurado; realizado = deseado × realización','Este control representa gasto corriente de provisión pública: aumenta demanda y gasto y afecta al saldo/deuda. No tiene un efecto productivo, de calidad o bienestar directo. La restricción de capacidad puede reducir los recursos realizados.',{porcentajeConfigurado:policy.services,gastoDeseado:servicesDesired,factorRealizacion:realization,gastoRealizado:services,gastoDeseadoReferencia:baselineServicesDesired,gastoRealizadoReferencia:servicesReferenceRealized,diferenciaRealizadaVsReferencia:services-servicesReferenceRealized},services,'miles de millones EUR constantes/año');
   const gap=(demand-capacity)/capacity;
   const priceTarget=M.inflationAnchor+gap*M.gapPriceResponse+external.energy*M.energyPriceExposure;
   const piRaw=M.inflationPersistence*old.underlyingInflation+(1-M.inflationPersistence)*priceTarget;
   const underlyingInflation=clamp(piRaw,M.minInflation,M.maxInflation);
   if (underlyingInflation!==piRaw) constraints.push('Inflaci\u00f3n limitada al dominio num\u00e9rico; escenario fuera del rango exploratorio.');
   const producerPrice=old.producerPrice*Math.exp(underlyingInflation/12);
-  const consumerPrice=producerPrice*consumerTaxMultiplier;
+  const consumerPrice=producerPrice*consumerTaxFactor;
   const priceMemory=[...old.priceMemory,consumerPrice].slice(-13);
   const inflation=consumerPrice/priceMemory[0]!-1;
   const gdpNominal=gdpReal*producerPrice;
-  record('prices','Precios de consumo','P productor(t+1) = P(t) * exp(inflacion / 12); IPC = P productor * factor impositivo','La tensi\u00f3n de capacidad y la energ\u00eda afectan al precio del productor. Los impuestos al consumo generan un cambio de nivel, no una penalizaci\u00f3n repetida cada mes.',{brechaDemandaCapacidad:gap,choqueEnergia:external.energy,tasaSubyacente:underlyingInflation,factorImpositivo:consumerTaxMultiplier},consumerPrice*100,'\u00edndice base 100');
+  record('prices','Precios de consumo','P productor(t+1) = P(t) * exp(inflacion / 12); IPC = P productor * factor impositivo','La tensi\u00f3n de capacidad y la energ\u00eda afectan al precio del productor. El cambio del impuesto al consumo traslada una fracci\u00f3n al nivel de precios; no se a\u00f1ade a la inflaci\u00f3n subyacente.',{brechaDemandaCapacidad:gap,choqueEnergia:external.energy,tasaSubyacente:underlyingInflation,factorImpositivo:consumerTaxMultiplier},consumerPrice*100,'\u00edndice base 100');
   const growth=Math.log(gdpReal/old.gdpReal)*12;
   const uRaw=old.unemployment-M.okunCoefficient*(growth-M.productivityGrowth-popGrowth)/12;
   const unemployment=clamp(uRaw,M.minUnemployment,M.maxUnemployment);
@@ -113,9 +134,8 @@ function stepState(base:Base,old:State,policy:Policy,external:External):State {
   const netDebt=old.debt-old.publicAssets+deficit/12;
   const debt=Math.max(0,netDebt), publicAssets=Math.max(0,-netDebt);
   record('budget','Cuenta p\u00fablica','Deuda neta(t+1) = deuda neta(t) + (gasto anualizado - ingresos anualizados) / 12','Compras, inversi\u00f3n, transferencias e intereses tienen contrapartida fiscal. Los super\u00e1vits cancelan deuda y despu\u00e9s acumulan activos. No reproduce el presupuesto oficial.',{recaudacion:revenue,gasto:spending,intereses:interest,deudaNetaAnterior:old.debt-old.publicAssets},debt-publicAssets,'miles de millones EUR',false);
-  const capital=old.capital*(1-M.depreciation/12)+investment/12;
-  record('capital','Acumulaci\u00f3n de capital','K(t+1) = K(t) * (1 - depreciacion / 12) + I / 12','La inversi\u00f3n realizada ampl\u00eda capacidad con retardo: su efecto productivo se usa en el siguiente paso.',{capitalAnterior:old.capital,depreciacion:M.depreciation,inversionMensual:investment/12},capital,'miles de millones EUR constantes',false);
-  const next:State={month:t,population,gdpReal,gdpNominal,producerPrice,consumerPrice,inflation,underlyingInflation,priceMemory,capacity,capital,unemployment,debt,publicAssets,revenue,spending,deficit,consumption,services,investment,publicInvestment,netExports,households,trace,constraints};
+  record('capital','Acumulación neta de capital','K(t) = K(t−1) × (1 − depreciación/12) + inversión realizada(t−1)/12; gK = ln(K(t)/K(t−1))','La depreciación entra una vez dentro del stock. La inversión pública forma parte de la inversión realizada; el cambio de stock entra en capacidad de este periodo.',{capitalAnterior:old.capital,inversionRealizadaAnterior:old.investment,inversionRealizadaAnteriorMensual:old.investment/12,depreciacionAnual:M.depreciation,capitalActual:capital,crecimientoNetoCapital:capitalGrowth,contribucionCapital:capitalCapacityContribution(capitalGrowth)},capital,'miles de millones EUR constantes',false);
+  const next:State={month:t,population,gdpReal,gdpNominal,producerPrice,consumerPrice,consumptionTaxFactor:consumerTaxFactor,consumptionTaxRate:policy.consumptionTax,inflation,underlyingInflation,priceMemory,capacity,capital,capitalGrowth,unemployment,debt,publicAssets,revenue,spending,deficit,consumption,services,investment,publicInvestment,netExports,households,trace,constraints};
   validateState(next,old);
   return next;
 }
@@ -130,9 +150,9 @@ function eventsFor(b:Branch,old:State,s:State,ext:External,forkMonth:number):Sim
   const events:SimEvent[]=[];
   const add=(type:SimEvent['type'],title:string,text:string,mechanisms:string[])=>events.push({id:`${b.id}-${s.month}-${events.length}`,month:s.month,branch:b.id,type,title,text,mechanisms});
   const f=(n:number)=>n.toLocaleString('es-ES',{maximumFractionDigits:2});
-  if(ext.energy) add('external',ext.energy>0?'Repunte exterior de la energ\u00eda':'Descenso exterior de la energ\u00eda',`Perturbaci\u00f3n ficticia compartida: ${f(ext.energy*100)} % en el factor energ\u00e9tico. Su efecto se transmite por el mecanismo de precios.`,['prices']);
-  if(ext.demand) add('external',ext.demand>0?'Aumenta la demanda exterior':'Se contrae la demanda exterior',`La demanda exterior hipot\u00e9tica cambia un ${f(ext.demand*100)} %. Ambas ramas reciben la misma perturbaci\u00f3n.`,['output']);
-  if(ext.supply) add('external',ext.supply>0?'Mejora t\u00e9cnica de la capacidad':'Interrupci\u00f3n de capacidad productiva',`Choque ficticio de oferta de ${f(ext.supply*100)} % sobre capacidad. No corresponde a un suceso real.`,['investment','capital','output']);
+  if(ext.energy) add('external',ext.energy>0?'Repunte exterior de la energ\u00eda':'Descenso exterior de la energ\u00eda',`Perturbaci\u00f3n sint\u00e9tica compartida: ${f(ext.energy*100)} % en el factor energ\u00e9tico. Su efecto se transmite por el mecanismo de precios.`,['prices']);
+  if(ext.demand) add('external',ext.demand>0?'Aumenta la demanda exterior':'Se contrae la demanda exterior',`Perturbaci\u00f3n sint\u00e9tica de demanda exterior del ${f(ext.demand*100)} %. Ambas ramas reciben la misma perturbaci\u00f3n.`,['output']);
+  if(ext.supply) add('external',ext.supply>0?'Mejora t\u00e9cnica de la capacidad':'Interrupci\u00f3n de capacidad productiva',`Perturbaci\u00f3n sint\u00e9tica de oferta del ${f(ext.supply*100)} % sobre capacidad. No corresponde a un suceso real.`,['investment','capital','output']);
   const legacyFork=s.month===forkMonth+1 && b.id==='B';
   const configuredChange=b.policyChanges?.some(change=>change.month===old.month);
   if(legacyFork) add('economy','Entra en vigor la configuraci\u00f3n B','Los par\u00e1metros se aplican a la situaci\u00f3n heredada. Capital, deuda y poblaci\u00f3n no se reinician. No se modela una transici\u00f3n constitucional o de propiedad completa.',['households','investment','budget']);
@@ -151,20 +171,21 @@ function stepBranch(base:Base,b:Branch,ext:External,forkMonth:number):Branch {
   const state=stepState(base,b.state,b.policy,ext);
   return {...b,state,history:[...b.history,point(state)],events:[...b.events,...eventsFor(b,b.state,state,ext,forkMonth)]};
 }
-export function createExperiment(base:Base,seed:number,policy?:Policy):Experiment {
+export function createExperiment(base:Base,seed:number,policy?:Policy,shocksEnabled=true):Experiment {
   if(!Number.isInteger(seed) || seed<0 || seed>4294967295) throw new Error('La semilla debe ser un entero sin signo de 32 bits.');
   const state=initialState(base);
   const aPolicy=baselinePolicy(base),bPolicy=validatePolicy(policy||aPolicy);
   const a:Branch={id:'A',policy:aPolicy,initialPolicy:aPolicy,policyChanges:[],institutionOriginMonth:0,state,history:[point(state)],events:[]};
   const b:Branch={id:'B',policy:bPolicy,initialPolicy:bPolicy,policyChanges:[],institutionOriginMonth:0,state:structuredClone(state),history:[point(state)],events:[]};
-  return {base,seed,forkMonth:0,a,b,comparisonActive:false,primaryId:'B',comparisonOriginId:'B'};
+  return {base,seed,shocksEnabled,forkMonth:0,a,b,comparisonActive:false,primaryId:'B',comparisonOriginId:'B'};
 }
+export function setShocksEnabled(exp:Experiment,enabled:boolean):Experiment { return {...exp,shocksEnabled:enabled}; }
 export function advance(exp:Experiment,months:number):Experiment {
   if(!Number.isInteger(months) || months<1 || months>MAX_MONTHS) throw new Error('N\u00famero de meses no v\u00e1lido.');
   const count=Math.min(months,MAX_MONTHS-exp.a.state.month);
   let next=exp;
   for(let i=0;i<count;i++) {
-    const ext=externalAt(next.seed,next.a.state.month+1);
+    const ext=next.shocksEnabled?externalAt(next.seed,next.a.state.month+1):{energy:0,demand:0,supply:0,id:`no-shocks-${next.seed}-${next.a.state.month+1}`};
     next={...next,a:stepBranch(next.base,next.a,ext,0),b:stepBranch(next.base,next.b,ext,next.forkMonth)};
   }
   return next;
@@ -177,8 +198,8 @@ function withPolicyAt(branch:Branch,policy:Policy,month:number):Branch {
   if(month===0)return {...branch,policy:p,initialPolicy:p,policyChanges:changes};
   changes.push({month,policy:p});changes.sort((a,b)=>a.month-b.month);return {...branch,policy:p,policyChanges:changes};
 }
-export function createPrimaryExperiment(base:Base,seed:number,policy?:Policy):Experiment {
-  const exp=createExperiment(base,seed,policy),p=validatePolicy(policy||exp.b.policy);
+export function createPrimaryExperiment(base:Base,seed:number,policy?:Policy,shocksEnabled=true):Experiment {
+  const exp=createExperiment(base,seed,policy,shocksEnabled),p=validatePolicy(policy||exp.b.policy);
   return {...exp,a:withPolicyAt(exp.a,p,0),b:withPolicyAt(exp.b,p,0),comparisonActive:false,primaryId:'B',comparisonOriginId:'B',branchNames:{A:'Tu simulaci\u00f3n',B:'Tu simulaci\u00f3n'}};
 }
 export function configureBranch(exp:Experiment,id:'A'|'B',policy:Policy):Experiment {

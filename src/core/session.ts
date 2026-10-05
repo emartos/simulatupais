@@ -1,18 +1,26 @@
-import type { Base, Experiment, PolicyChange, Session, SessionV1, SessionV2 } from './types.js';
+import type { Base, EngineBuild, Experiment, PolicyChange, PresetOrigin, Session, SessionV1, SessionV2 } from './types.js';
 import { MODEL_VERSION, MAX_MONTHS } from './model.js';
 import { validatePolicy } from './policy.js';
 import { advance, compareFrom, configureBranch, createExperiment, createPrimaryExperiment, fork } from './engine.js';
+import { validatePresetOrigin } from '../political-presets/schema.js';
 function recipe(branch:Experiment['a']) {
   return {initialPolicy:branch.initialPolicy||branch.policy,changes:branch.policyChanges||[],institutionOriginMonth:branch.institutionOriginMonth||0};
 }
-export function exportSession(exp:Experiment,datasetHash:string):SessionV2 {
-  return {schema:2,modelVersion:MODEL_VERSION,datasetVersion:exp.base.datasetVersion,datasetHash,seed:exp.seed,
-    months:exp.a.state.month,forkMonth:exp.forkMonth,primaryId:exp.primaryId||'B',comparisonActive:!!exp.comparisonActive,
+export function exportSession(exp:Experiment,datasetHash:string,engineBuild:EngineBuild={engineVersion:MODEL_VERSION,commitSha:null},presetOrigin?:PresetOrigin,presetBranchOrigins?:SessionV2['presetBranchOrigins']):SessionV2 {
+  return {schema:2,modelVersion:MODEL_VERSION,datasetVersion:exp.base.datasetVersion,datasetHash,seed:exp.seed,shocksEnabled:exp.shocksEnabled,
+    engineBuild,
+    ...(presetOrigin?{presetOrigin}:{}),...(presetBranchOrigins&&Object.keys(presetBranchOrigins).length?{presetBranchOrigins}:{}),months:exp.a.state.month,forkMonth:exp.forkMonth,primaryId:exp.primaryId||'B',comparisonActive:!!exp.comparisonActive,
     comparisonOriginId:exp.comparisonOriginId||exp.primaryId||'B',...(exp.branchNames?{branchNames:exp.branchNames}:{}),branches:{A:recipe(exp.a),B:recipe(exp.b)}};
 }
 function validateCommon(s:Record<string,unknown>,base:Base,datasetHash:string):void {
   if(s.modelVersion!==MODEL_VERSION) throw new Error('Versi\u00f3n del modelo incompatible. Conserva el paquete original para abrir esta sesi\u00f3n.');
   if(s.datasetVersion!==base.datasetVersion || s.datasetHash!==datasetHash) throw new Error('La sesi\u00f3n utiliza otra fotograf\u00eda de datos. No se reinterpretar\u00e1 silenciosamente.');
+}
+function validatedEngineBuild(s:Record<string,unknown>):EngineBuild {
+  const raw=s.engineBuild&&typeof s.engineBuild==='object'?s.engineBuild as Record<string,unknown>:undefined;
+  const engineVersion=raw&&typeof raw.engineVersion==='string'&&raw.engineVersion.length<=40&&raw.engineVersion.trim()?raw.engineVersion:s.modelVersion as string;
+  const commitSha=raw&&typeof raw.commitSha==='string'&&/^[a-f\d]{40}$/i.test(raw.commitSha)?raw.commitSha.toLowerCase():null;
+  return {engineVersion,commitSha};
 }
 function integer(s:Record<string,unknown>,key:string,min:number,max:number):number {
   const n=s[key];if(typeof n!=='number'||!Number.isInteger(n)||n<min||n>max)throw new Error(`Valor de sesi\u00f3n no v\u00e1lido: ${key}.`);return n;
@@ -21,9 +29,10 @@ export function validateSession(input:unknown,base:Base,datasetHash:string):Sess
   if(!input||typeof input!=='object'||Array.isArray(input))throw new Error('Archivo de sesi\u00f3n no v\u00e1lido.');
   const s=input as Record<string,unknown>;validateCommon(s,base,datasetHash);
   const months=integer(s,'months',0,MAX_MONTHS),seed=integer(s,'seed',0,4294967295);
+  if(s.schema===2&&typeof s.shocksEnabled!=='boolean')throw new Error('Falta la opción de perturbaciones sintéticas.');
   if(s.schema===1){
     const forkMonth=integer(s,'forkMonth',0,months);
-    return {schema:1,modelVersion:MODEL_VERSION,datasetVersion:base.datasetVersion,datasetHash,seed,months,forkMonth,policy:validatePolicy(s.policy)};
+    return {schema:1,modelVersion:MODEL_VERSION,datasetVersion:base.datasetVersion,datasetHash,seed,months,forkMonth,policy:validatePolicy(s.policy),engineBuild:validatedEngineBuild(s),...(typeof s.shocksEnabled==='boolean'?{shocksEnabled:s.shocksEnabled}:{})};
   }
   if(s.schema!==2)throw new Error('Formato de sesi\u00f3n no compatible.');
   const forkMonth=integer(s,'forkMonth',0,months);
@@ -45,13 +54,18 @@ export function validateSession(input:unknown,base:Base,datasetHash:string):Sess
     return {initialPolicy:validatePolicy(r.initialPolicy),changes,institutionOriginMonth:originMonth};
   };
   const branches={A:clean('A'),B:clean('B')};
+  const presetOrigin=validatePresetOrigin(s.presetOrigin);
+  const rawBranchOrigins=s.presetBranchOrigins&&typeof s.presetBranchOrigins==='object'?s.presetBranchOrigins as Record<string,unknown>:{};
+  if(Object.keys(rawBranchOrigins).some(key=>key!=='A'&&key!=='B'))throw new Error('Procedencia de rama no válida.');
+  const presetBranchOrigins:NonNullable<SessionV2['presetBranchOrigins']>={};
+  for(const id of ['A','B'] as const){const origin=validatePresetOrigin(rawBranchOrigins[id]);if(origin)presetBranchOrigins[id]=origin;}
   const names=s.branchNames&&typeof s.branchNames==='object'?s.branchNames as Record<string,unknown>:{A:'Simulaci\u00f3n original',B:'Alternativa'};
   if(typeof names.A!=='string'||typeof names.B!=='string'||names.A.length>60||names.B.length>60)throw new Error('Nombre de trayectoria no v\u00e1lido.');
-  return {schema:2,modelVersion:MODEL_VERSION,datasetVersion:base.datasetVersion,datasetHash,seed,months,forkMonth,
-    primaryId:s.primaryId,comparisonActive:s.comparisonActive,comparisonOriginId:s.comparisonOriginId,branchNames:{A:names.A,B:names.B},branches};
+  return {schema:2,modelVersion:MODEL_VERSION,datasetVersion:base.datasetVersion,datasetHash,seed,shocksEnabled:s.shocksEnabled as boolean,months,forkMonth,
+    primaryId:s.primaryId,comparisonActive:s.comparisonActive,comparisonOriginId:s.comparisonOriginId,branchNames:{A:names.A,B:names.B},branches,engineBuild:validatedEngineBuild(s),...(presetOrigin?{presetOrigin}:{}),...(Object.keys(presetBranchOrigins).length?{presetBranchOrigins}:{})};
 }
 function restoreV1(s:SessionV1,base:Base):Experiment {
-  let exp=createExperiment(base,s.seed);
+  let exp=createExperiment(base,s.seed,undefined,s.shocksEnabled??true);
   if(s.forkMonth>0)exp=advance(exp,s.forkMonth);
   exp=fork(exp,s.policy);
   if(s.months>s.forkMonth)exp=advance(exp,s.months-s.forkMonth);
@@ -61,9 +75,9 @@ function restoreV2(s:SessionV2,base:Base):Experiment {
   const sourceId=s.comparisonOriginId,targetId=sourceId==='A'?'B':'A';
   const sourceRecipe=s.branches[sourceId],targetRecipe=s.branches[targetId];
   let exp:Experiment;
-  if(s.comparisonActive) exp=createPrimaryExperiment(base,s.seed,sourceRecipe.initialPolicy);
+  if(s.comparisonActive) exp=createPrimaryExperiment(base,s.seed,sourceRecipe.initialPolicy,s.shocksEnabled);
   else {
-    exp=createExperiment(base,s.seed,s.branches.B.initialPolicy);
+    exp=createExperiment(base,s.seed,s.branches.B.initialPolicy,s.shocksEnabled);
     exp={...exp,a:{...exp.a,policy:s.branches.A.initialPolicy,initialPolicy:s.branches.A.initialPolicy,policyChanges:[]},
       b:{...exp.b,policy:s.branches.B.initialPolicy,initialPolicy:s.branches.B.initialPolicy,policyChanges:[]},primaryId:s.primaryId,comparisonOriginId:s.comparisonOriginId};
   }

@@ -33,7 +33,7 @@ export interface SimEvent {
 export interface State {
   month: number; population: number; gdpReal: number; gdpNominal: number;
   producerPrice: number; consumerPrice: number; inflation: number; underlyingInflation: number;
-  priceMemory: number[]; capacity: number; capital: number; unemployment: number;
+  priceMemory: number[]; consumptionTaxFactor:number; consumptionTaxRate:number; capacity: number; capital: number; capitalGrowth:number; unemployment: number;
   debt: number; publicAssets: number; revenue: number; spending: number; deficit: number;
   consumption: number; services: number; investment: number; publicInvestment: number; netExports: number;
   households: Household[]; trace: Trace[]; constraints: string[];
@@ -44,10 +44,14 @@ export interface Point {
 }
 export interface PolicyChange { month: number; policy: Policy; }
 export interface Branch { id: 'A' | 'B'; policy: Policy; state: State; history: Point[]; events: SimEvent[]; initialPolicy?: Policy; policyChanges?: PolicyChange[]; institutionOriginMonth?: number; }
-export interface SessionV1 { schema: 1; modelVersion: string; datasetVersion: string; datasetHash: string; seed: number; months: number; forkMonth: number; policy: Policy; }
-export interface SessionV2 { schema: 2; modelVersion: string; datasetVersion: string; datasetHash: string; seed: number; months: number; forkMonth:number; primaryId: 'A'|'B'; comparisonActive: boolean; comparisonOriginId: 'A'|'B'; branchNames?:{A:string;B:string}; branches: { A:{initialPolicy:Policy;changes:PolicyChange[];institutionOriginMonth:number}; B:{initialPolicy:Policy;changes:PolicyChange[];institutionOriginMonth:number} }; }
+export interface EngineBuild { engineVersion: string; commitSha: string | null; }
+export type PresetControlKey = 'taxShift'|'progressivity'|'consumptionTax'|'corporateTax'|'transfers'|'publicInvestment'|'services'|'investmentFriction';
+export type PresetMappingStatus = 'DOCUMENTED'|'APPROXIMATED'|'UNMAPPED';
+export interface PresetOrigin { presetId:string; presetVersion:string; partyName:string; actorName?:string; actorType?:'PARTY'|'COALITION'|'FEDERATION'; electionDate?:string; appliedAtMonth?:number; electionName:string; modelVersion:string; appliedAt:string; originalPolicyValues:Partial<Record<PresetControlKey,number>>; mappingStatuses:Partial<Record<PresetControlKey,PresetMappingStatus>>; mappingDetails?:Partial<Record<PresetControlKey,{mappingStatus:PresetMappingStatus;derivationId?:string;mappingVersion:string;mappingMethod?:'DIRECT'|'STANDARDIZED_CODING'|'NONE';positionScore?:-2|-1|0|1|2|null}>>; }
+export interface SessionV1 { schema: 1; modelVersion: string; datasetVersion: string; datasetHash: string; seed: number; months: number; forkMonth: number; policy: Policy; shocksEnabled?:boolean; engineBuild?:EngineBuild; }
+export interface SessionV2 { schema: 2; modelVersion: string; datasetVersion: string; datasetHash: string; seed: number; shocksEnabled:boolean; months: number; forkMonth:number; primaryId: 'A'|'B'; comparisonActive: boolean; comparisonOriginId: 'A'|'B'; branchNames?:{A:string;B:string}; branches: { A:{initialPolicy:Policy;changes:PolicyChange[];institutionOriginMonth:number}; B:{initialPolicy:Policy;changes:PolicyChange[];institutionOriginMonth:number} }; engineBuild?:EngineBuild; presetOrigin?:PresetOrigin; presetBranchOrigins?:Partial<Record<'A'|'B',PresetOrigin>>; }
 export type Session = SessionV1|SessionV2;
-export interface Experiment { base: Base; seed: number; forkMonth: number; a: Branch; b: Branch; comparisonActive?: boolean; primaryId?: 'A'|'B'; comparisonOriginId?: 'A'|'B'; branchNames?:{A:string;B:string}; }
+export interface Experiment { base: Base; seed: number; shocksEnabled:boolean; forkMonth: number; a: Branch; b: Branch; comparisonActive?: boolean; primaryId?: 'A'|'B'; comparisonOriginId?: 'A'|'B'; branchNames?:{A:string;B:string}; }
 export interface External { energy: number; demand: number; supply: number; id: string; }
-export interface WorkerRequest { id: number; type: 'INIT' | 'ADVANCE' | 'CONFIGURE' | 'FORK' | 'COMPARE' | 'RESTORE'; payload?: unknown; }
+export interface WorkerRequest { id: number; type: 'INIT' | 'ADVANCE' | 'CONFIGURE' | 'FORK' | 'COMPARE' | 'RESTORE' | 'SHOCKS'; payload?: unknown; }
 export interface WorkerResponse { id: number; ok: boolean; experiment?: Experiment; error?: string; }

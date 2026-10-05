@@ -26,13 +26,3 @@ export function validatePolicy(input: unknown): Policy {
   out.elections=p.elections; out.expression=p.expression; out.judicialReview=p.judicialReview;
   return out as unknown as Policy;
 }
-// A descriptive, user-visible coordinate only. NEVER called by the numerical engine.
-// Synthetic anchors, not scores of parties, political quality, or an empirical classification.
-export function economicProximity(p: Policy): { position:number; values:number[]; components:number[] } {
-  const components = [
-    (p.taxShift+6)/14, (p.progressivity+4)/10, (p.transfers+25)/60, (p.publicInvestment-1)/5
-  ];
-  const position = Math.max(0,Math.min(1,1-components.reduce((a,b)=>a+b,0)/components.length));
-  const values = [0,0.5,1].map(anchor=>Math.round(100*(1-Math.abs(position-anchor))));
-  return {position,values,components};
-}
