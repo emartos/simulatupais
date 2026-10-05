@@ -1,0 +1,82 @@
+{
+  "actor": "SUMAR-23J-2023",
+  "election": "23J 2023",
+  "codingVersion": "1.0.0",
+  "modelVersion": "0.3.0",
+  "controls": {
+    "taxShift": {
+      "score": 1,
+      "evidence": [
+        "SUMAR-IRPF-001"
+      ],
+      "rationale": "Propone elevar marginales de IRPF en rentas altas y tipos sobre rentas del ahorro. Aunque la incidencia se concentra en esos tramos, la dirección textual es subir impuestos directos a hogares; se asigna un paso.",
+      "confidence": "MEDIUM"
+    },
+    "progressivity": {
+      "score": 2,
+      "evidence": [
+        "SUMAR-IRPF-001"
+      ],
+      "rationale": "Eleva tipos a partir de umbrales altos y plantea una escala superior hasta el 52 %, además de cambios sobre rentas del ahorro. Varias reformas explícitas refuerzan materialmente la carga relativa en rentas altas.",
+      "confidence": "HIGH"
+    },
+    "consumptionTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "El programa combina rebajas fiscales en determinados consumos con otras medidas de fiscalidad indirecta/ambiental; la dirección neta sobre un único tipo efectivo agregado de consumo es ambigua.",
+      "confidence": null
+    },
+    "corporateTax": {
+      "score": 2,
+      "evidence": [
+        "SUMAR-SOC-001"
+      ],
+      "rationale": "Propone un tipo efectivo mínimo del 15 % y limitar deducciones y exenciones. El paquete expresa una subida material de la carga empresarial efectiva.",
+      "confidence": "HIGH"
+    },
+    "transfers": {
+      "score": 2,
+      "evidence": [
+        "SUMAR-TRANSFERS-001",
+        "SUMAR-TRANSFERS-002",
+        "SUMAR-TRANSFERS-003",
+        "SUMAR-TRANSFERS-004",
+        "SUMAR-TRANSFERS-005",
+        "SUMAR-TRANSFERS-006",
+        "SUMAR-TRANSFERS-007"
+      ],
+      "rationale": "El programa combina bono hipotecario, herencia universal, prestación infantil, mejoras de pensiones y complementos, ampliación del IMV y ayudas de emergencia. La orientación acumulada de nuevas/ampliadas transferencias es fuertemente expansiva; no se suman importes ni se afirma un coste neto.",
+      "confidence": "HIGH"
+    },
+    "publicInvestment": {
+      "score": 2,
+      "evidence": [
+        "SUMAR-PUBINV-001",
+        "SUMAR-PUBINV-002",
+        "SUMAR-PUBINV-003",
+        "SUMAR-PUBINV-004",
+        "SUMAR-SERV-002"
+      ],
+      "rationale": "Propone inversión de vivienda, inversión deportiva, recursos públicos PERTE, objetivo de I+D pública y creación de plazas infantiles. El conjunto cubre varios activos y ámbitos con compromisos cuantificados o programáticos, por lo que se codifica una expansión fuerte sin sumar magnitudes.",
+      "confidence": "HIGH"
+    },
+    "services": {
+      "score": 2,
+      "evidence": [
+        "SUMAR-SERV-001",
+        "SUMAR-SERV-002",
+        "SUMAR-SERV-003",
+        "SUMAR-SERV-004",
+        "SUMAR-SERV-005"
+      ],
+      "rationale": "Propone ampliar cuidados, escuelas infantiles, Plan Corresponsables, financiación de dependencia y protección familiar. La diversidad de servicios y expansión de recursos respalda aumento fuerte de gasto corriente; transferencias monetarias se excluyen de esta codificación.",
+      "confidence": "HIGH"
+    },
+    "investmentFriction": {
+      "score": null,
+      "evidence": [],
+      "rationale": "La agencia industrial y la simplificación financiera no especifican un conjunto suficiente de medidas sobre licencias, trámites o restricciones a inversión privada.",
+      "confidence": null
+    }
+  }
+}

@@ -1,0 +1,58 @@
+{
+  "actor": "ERC-23J-2023",
+  "election": "23J 2023",
+  "codingVersion": "1.0.0",
+  "modelVersion": "0.3.0",
+  "controls": {
+    "taxShift": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las reformas fiscales estatales identificadas no indican dirección concreta de la carga general sobre hogares; las propuestas propias son territoriales.",
+      "confidence": null
+    },
+    "progressivity": {
+      "score": 1,
+      "evidence": [
+        "ERC-FISC-002"
+      ],
+      "rationale": "La dirección hacia mayor progresividad está suficientemente apoyada por propuestas explícitas sobre rentas altas y capital, aunque la intensidad se mantiene prudentemente en un solo paso.",
+      "confidence": "MEDIUM"
+    },
+    "consumptionTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las propuestas fiscales de consumo revisadas se refieren principalmente a capacidad normativa territorial y no fijan una dirección estatal.",
+      "confidence": null
+    },
+    "corporateTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las reformas estatales de lucha contra fraude y fiscalidad empresarial no expresan una dirección general material del impuesto sobre beneficios.",
+      "confidence": null
+    },
+    "transfers": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las propuestas de prestaciones y del IMV se refieren a competencias territoriales o no expresan cambio estatal de cuantías.",
+      "confidence": null
+    },
+    "publicInvestment": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las inversiones identificadas corresponden a Catalunya/Països Catalans y no se extrapolan al conjunto de España.",
+      "confidence": null
+    },
+    "services": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las propuestas de sanidad, educación y dependencia se refieren a provisión territorial y no fijan dirección estatal.",
+      "confidence": null
+    },
+    "investmentFriction": {
+      "score": null,
+      "evidence": [],
+      "rationale": "La simplificación y ampliación de autogobierno no especifican cambios estatales operativos de licencias o regulación de inversión privada.",
+      "confidence": null
+    }
+  }
+}

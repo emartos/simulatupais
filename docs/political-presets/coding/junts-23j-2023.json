@@ -1,0 +1,17 @@
+{
+  "actor": "Junts per Catalunya (Junts)",
+  "actorType": "COALITION",
+  "election": "Elecciones Generales de España — 23J 2023",
+  "codingVersion": "1.0.0",
+  "programSource": "https://janhihaprou.cat/app/uploads/2023/07/Programa-Electoral.pdf",
+  "controls": {
+    "taxShift": {"score": null, "evidence": [], "rationale": "El documento describe medidas fiscales y el déficit fiscal de Catalunya, pero no una dirección general estatal de impuestos directos sobre hogares.", "confidence": null},
+    "progressivity": {"score": null, "evidence": [], "rationale": "No hay evidencia estatal suficiente sobre la carga relativa entre rentas altas y bajas.", "confidence": null},
+    "consumptionTax": {"score": null, "evidence": [], "rationale": "No debe usarse material posterior al 23J para reconstruir retrospectivamente una posición electoral de 2023. Mientras no exista una fuente primaria oficial del 23J recuperable y verificable, el IVA queda sin mapear.", "confidence": null, "reviewStatus": "UNMAPPED_TRAS_REVISION"},
+    "corporateTax": {"score": null, "evidence": [], "rationale": "No se encuentra una posición estatal general sobre impuestos a beneficios empresariales.", "confidence": null},
+    "transfers": {"score": null, "evidence": [], "rationale": "Las medidas sociales identificadas tienen alcance catalán o no fijan una dirección estatal general de transferencias.", "confidence": null},
+    "publicInvestment": {"score": null, "evidence": [], "rationale": "Las demandas de inversión se refieren al déficit de inversión en Catalunya y no se extrapolan al conjunto estatal.", "confidence": null},
+    "services": {"score": null, "evidence": [], "rationale": "No se identifica una posición estatal agregada sobre gasto corriente en servicios.", "confidence": null},
+    "investmentFriction": {"score": null, "evidence": [], "rationale": "No se identifica un conjunto estatal operativo de cambios de licencias o trámites.", "confidence": null}
+  }
+}

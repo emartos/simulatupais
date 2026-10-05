@@ -1,0 +1,67 @@
+{
+  "actor": "PSOE-23J-2023",
+  "election": "23J 2023",
+  "codingVersion": "1.0.0",
+  "modelVersion": "0.3.0",
+  "controls": {
+    "taxShift": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Los incentivos y mínimos fiscales se dirigen a familias y vivienda; el programa no expresa una dirección general para la carga directa agregada de los hogares.",
+      "confidence": null
+    },
+    "progressivity": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Hay medidas familiares y de fiscalidad justa, pero no se identifica una dirección suficientemente concreta del diferencial de carga entre rentas altas y bajas.",
+      "confidence": null
+    },
+    "consumptionTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "No se encuentra en el programa una propuesta estatal identificable que aumente o reduzca de forma material la fiscalidad general sobre el consumo.",
+      "confidence": null
+    },
+    "corporateTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Los incentivos empresariales no expresan una dirección general y material del impuesto sobre beneficios.",
+      "confidence": null
+    },
+    "transfers": {
+      "score": 1,
+      "evidence": [
+        "PSOE-TRANS-001",
+        "PSOE-TRANS-002",
+        "PSOE-TRANS-003",
+        "PSOE-SERV-002"
+      ],
+      "rationale": "El programa muestra una dirección clara de aumento de transferencias, pero la evidencia disponible no justifica clasificar el conjunto como un cambio fuerte de dos pasos en la escala normalizada.",
+      "confidence": "HIGH"
+    },
+    "publicInvestment": {
+      "score": 2,
+      "evidence": [
+        "PSOE-PUBINV-001",
+        "PSOE-PUBINV-002"
+      ],
+      "rationale": "Fija expansión del parque de vivienda pública y varios programas de construcción/adquisición de vivienda. La orientación es una ampliación estructural de capital público habitacional; no se interpreta como coste presupuestario exacto.",
+      "confidence": "HIGH"
+    },
+    "services": {
+      "score": 2,
+      "evidence": [
+        "PSOE-SERV-001",
+        "PSOE-SERV-002"
+      ],
+      "rationale": "Establece objetivos de gasto para sanidad, educación y servicios sociales y desarrolla ampliaciones de cobertura. La amplitud de sectores y los objetivos agregados respaldan una posición de aumento fuerte de recursos corrientes, aunque las partidas mezclen componentes.",
+      "confidence": "MEDIUM"
+    },
+    "investmentFriction": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las medidas regulatorias sobre ahorro y vivienda no forman un conjunto estatal claro de licencias, trámites o restricciones a la inversión privada.",
+      "confidence": null
+    }
+  }
+}

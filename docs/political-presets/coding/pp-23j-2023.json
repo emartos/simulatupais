@@ -1,0 +1,62 @@
+{
+  "actor": "PP-23J-2023",
+  "election": "23J 2023",
+  "codingVersion": "1.0.0",
+  "modelVersion": "0.3.0",
+  "controls": {
+    "taxShift": {
+      "score": -1,
+      "evidence": [
+        "PP-IRPF-001",
+        "PP-PATRIMONIO-001"
+      ],
+      "rationale": "Propone deflactar la tarifa del IRPF y eliminar el impuesto temporal a grandes fortunas: ambas medidas reducen impuestos directos de hogares. Se codifica una reducción moderada; la propuesta no fija una reforma general de tipos.",
+      "confidence": "MEDIUM"
+    },
+    "progressivity": {
+      "score": null,
+      "evidence": [],
+      "rationale": "El IRPF se deflacta, pero el programa no precisa la reforma por niveles de renta; eliminar el impuesto a grandes fortunas no permite inferir por sí solo el cambio neto del diferencial de carga representado.",
+      "confidence": null
+    },
+    "consumptionTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las rebajas de IVA identificadas son parciales y/o temporales y no permiten inferir de forma suficientemente sólida un descenso de un paso completo en el tipo efectivo agregado sobre el consumo.",
+      "confidence": null
+    },
+    "corporateTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Se propone simplificar Sociedades para determinados colectivos empresariales, sin expresar con claridad una subida o reducción material del impuesto.",
+      "confidence": null
+    },
+    "transfers": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las medidas sobre IMV y pensiones son de acceso, compatibilidad o sostenibilidad; no expresan una dirección general inequívoca del importe de transferencias monetarias.",
+      "confidence": null
+    },
+    "publicInvestment": {
+      "score": 1,
+      "evidence": [
+        "PP-VIVIENDA-002",
+        "PP-INFRA-001"
+      ],
+      "rationale": "El programa plantea movilizar suelo y promover vivienda social, además de inversiones en transporte, agua e infraestructuras. El conjunto indica una ampliación moderada de inversión pública, sin objetivos que justifiquen intensidad fuerte.",
+      "confidence": "MEDIUM"
+    },
+    "services": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las propuestas de acceso y mejora de servicios no especifican de forma suficientemente clara una expansión o reducción de recursos corrientes.",
+      "confidence": null
+    },
+    "investmentFriction": {
+      "score": null,
+      "evidence": [],
+      "rationale": "El control parte de fricción 0 y su mínimo también es 0; por tanto, la dirección de menor fricción no puede representarse con los límites vigentes. No se codifica como score 0 porque el programa sí plantea reducirla.",
+      "confidence": null
+    }
+  }
+}

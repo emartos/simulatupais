@@ -1,0 +1,58 @@
+{
+  "actor": "UPN-23J-2023",
+  "election": "23J 2023",
+  "codingVersion": "1.0.0",
+  "modelVersion": "0.3.0",
+  "controls": {
+    "taxShift": {
+      "score": -1,
+      "evidence": ["UPN-FISC-001"],
+      "rationale": "El programa del 23J expresa una dirección clara de reducción de impuestos y deflactación de la tarifa del IRPF. Bajo la rúbrica estandarizada, esto justifica un paso negativo en impuestos directos sobre hogares.",
+      "confidence": "MEDIUM",
+      "reviewStatus": "APROBADO"
+    },
+    "progressivity": {
+      "score": null,
+      "evidence": [],
+      "rationale": "No hay propuesta estatal concreta que indique el cambio relativo de carga entre niveles de renta.",
+      "confidence": null
+    },
+    "consumptionTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "No se identifica una reforma estatal de IVA o impuestos al consumo; las referencias fiscales son generales o territoriales.",
+      "confidence": null
+    },
+    "corporateTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las ayudas a autónomos y empleo no concretan la dirección estatal del impuesto sobre beneficios.",
+      "confidence": null
+    },
+    "transfers": {
+      "score": null,
+      "evidence": [],
+      "rationale": "La evidencia disponible no permite concluir una posición agregada suficientemente clara sobre el nivel total de transferencias monetarias respecto al baseline.",
+      "reviewStatus": "UNMAPPED_TRAS_REVISION",
+      "confidence": null
+    },
+    "publicInvestment": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las medidas de energía, patrimonio y zonas rurales están referidas a Navarra y carecen de un compromiso estatal.",
+      "confidence": null
+    },
+    "services": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las propuestas de sanidad y educación son territoriales y no especifican recursos estatales corrientes.",
+      "confidence": null
+    },
+    "investmentFriction": {
+      "score": null,
+      "evidence": [],
+      "rationale": "La facilitación empresarial se formula de forma general y territorial, sin un conjunto operativo estatal identificable.",
+      "confidence": null
+    }
+  }
+}

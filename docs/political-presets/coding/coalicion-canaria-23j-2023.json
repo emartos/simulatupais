@@ -1,0 +1,17 @@
+{
+  "actor": "Coalición Canaria (CCa)",
+  "actorType": "COALITION",
+  "election": "Elecciones Generales de España — 23J 2023",
+  "codingVersion": "1.0.0",
+  "programSource": "https://coalicioncanaria.org/wp-content/uploads/2023/06/COALICION_POR_CANARIAS.pdf",
+  "controls": {
+    "taxShift": {"score": null, "evidence": [], "rationale": "La rebaja de IRPF para residentes de La Palma se limita a un territorio y no se extrapola.", "confidence": null},
+    "progressivity": {"score": null, "evidence": [], "rationale": "No hay propuesta sobre el diferencial de carga por nivel de renta.", "confidence": null},
+    "consumptionTax": {"score": null, "evidence": [], "rationale": "No se identifica reforma estatal general de IVA o impuestos al consumo.", "confidence": null},
+    "corporateTax": {"score": null, "evidence": [], "rationale": "Las bonificaciones mencionadas se vinculan al REF o a actividades en Canarias.", "confidence": null},
+    "transfers": {"score": null, "evidence": [], "rationale": "El programa contiene compromisos sobre pensiones, pobreza, dependencia y ayudas, pero buena parte del contenido es específicamente territorial para Canarias y no justifica trasladar un aumento agregado estatal de transferencias al modelo.", "confidence": null, "reviewStatus": "UNMAPPED_TRAS_REVISION"},
+    "publicInvestment": {"score": null, "evidence": [], "rationale": "Las demandas de inversiones e infraestructuras están territorializadas en Canarias.", "confidence": null},
+    "services": {"score": null, "evidence": [], "rationale": "Las peticiones de financiación sanitaria, educativa y de dependencia son para Canarias y no fijan recursos estatales agregados.", "confidence": null},
+    "investmentFriction": {"score": null, "evidence": [], "rationale": "No se identifica propuesta estatal general sobre trámites o regulación de inversión.", "confidence": null}
+  }
+}

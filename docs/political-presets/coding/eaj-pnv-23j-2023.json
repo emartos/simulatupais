@@ -1,0 +1,59 @@
+{
+  "actor": "EAJ-PNV-23J-2023",
+  "election": "23J 2023",
+  "codingVersion": "1.0.0",
+  "modelVersion": "0.3.0",
+  "controls": {
+    "taxShift": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las propuestas fiscales respetan marcos forales y no identifican una dirección general estatal de la carga sobre hogares.",
+      "confidence": null
+    },
+    "progressivity": {
+      "score": 1,
+      "evidence": ["PNV-FISC-001"],
+      "rationale": "El programa 23J expresa una orientación clara hacia mayor progresividad fiscal y un sistema tributario basado en progresividad, equidad y justicia social. Se asigna un paso moderado.",
+      "confidence": "MEDIUM",
+      "reviewStatus": "APROBADO"
+    },
+    "consumptionTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "La fiscalidad verde referida no establece una dirección estatal material de los impuestos al consumo.",
+      "confidence": null
+    },
+    "corporateTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las prestaciones energéticas e impuestos empresariales no establecen una reforma general estatal de Sociedades.",
+      "confidence": null
+    },
+    "transfers": {
+      "score": null,
+      "evidence": [],
+      "rationale": "La defensa de pensiones y otras iniciativas redistributivas concretas no basta para establecer un aumento agregado de un paso completo en transferencias monetarias frente al baseline.",
+      "reviewStatus": "UNMAPPED_TRAS_REVISION",
+      "confidence": null
+    },
+    "publicInvestment": {
+      "score": 1,
+      "evidence": ["PNV-PUBINV-001"],
+      "rationale": "El programa contiene una dirección clara de preservación y refuerzo de la capacidad de inversión pública, especialmente en transición digital, ecológica y ejecución de fondos públicos. Se asigna un paso moderado.",
+      "confidence": "MEDIUM",
+      "reviewStatus": "APROBADO"
+    },
+    "services": {
+      "score": null,
+      "evidence": [],
+      "rationale": "El refuerzo de servicios se formula principalmente para Euskadi y sin un compromiso estatal agregado.",
+      "confidence": null
+    },
+    "investmentFriction": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las propuestas de flexibilidad y menor burocracia se refieren a convocatorias/regulación territorial y no sostienen una codificación estatal.",
+      "confidence": null
+    }
+  }
+}

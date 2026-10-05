@@ -1,0 +1,71 @@
+{
+  "actor": "VOX-23J-2023",
+  "election": "23J 2023",
+  "codingVersion": "1.0.0",
+  "modelVersion": "0.3.0",
+  "controls": {
+    "taxShift": {
+      "score": -2,
+      "evidence": [
+        "VOX-IRPF-001",
+        "VOX-IRPF-002",
+        "VOX-IRPF-003",
+        "VOX-IRPF-004",
+        "VOX-IRPF-005"
+      ],
+      "rationale": "Propone dos tipos de IRPF, elevar la exención laboral y aplicar reducciones familiares, deducciones de vivienda/alquiler y exención de pensiones. El paquete amplio expresa una reducción fuerte de impuestos directos a hogares.",
+      "confidence": "HIGH"
+    },
+    "progressivity": {
+      "score": -1,
+      "evidence": [
+        "VOX-IRPF-001",
+        "VOX-IRPF-002",
+        "VOX-IRPF-005"
+      ],
+      "rationale": "La sustitución de la estructura vigente por dos tipos y las reducciones familiares generalizadas comprimen la diferenciación de tipos. Se interpreta como una reducción moderada de progresividad; no se usa el tipo marginal como valor del control.",
+      "confidence": "MEDIUM"
+    },
+    "consumptionTax": {
+      "score": -2,
+      "evidence": [
+        "VOX-IVA-001",
+        "VOX-VIVIENDA-001"
+      ],
+      "rationale": "Propone IVA cero para bienes esenciales y vivienda familiar, con alcance amplio sobre la cesta y la primera adquisición. La dirección del conjunto es reducir materialmente la fiscalidad del consumo.",
+      "confidence": "MEDIUM"
+    },
+    "corporateTax": {
+      "score": -2,
+      "evidence": [
+        "VOX-SOC-001"
+      ],
+      "rationale": "Propone reducir progresivamente el tipo legal de Sociedades hasta el 15 %. Se codifica la dirección e intensidad del compromiso, sin convertir el tipo nominal al proxy del modelo.",
+      "confidence": "HIGH"
+    },
+    "transfers": {
+      "score": null,
+      "evidence": [],
+      "rationale": "La reordenación de prestaciones y las prioridades de elegibilidad combinan posibles ampliaciones y restricciones; el programa no permite fijar una dirección neta común.",
+      "confidence": null
+    },
+    "publicInvestment": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las referencias a sanidad e infraestructuras no precisan suficientemente un compromiso de aumento o reducción de inversión pública frente al baseline.",
+      "confidence": null
+    },
+    "services": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las propuestas de gasto y reorganización no permiten distinguir una dirección clara del gasto corriente en servicios públicos.",
+      "confidence": null
+    },
+    "investmentFriction": {
+      "score": null,
+      "evidence": [],
+      "rationale": "El programa usa compromisos generales de simplificación y liberalización, pero no se identifica un conjunto estatal operativo suficientemente concreto para asignar un paso.",
+      "confidence": null
+    }
+  }
+}

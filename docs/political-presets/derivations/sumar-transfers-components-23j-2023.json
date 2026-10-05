@@ -1,0 +1,111 @@
+{
+  "presetId": "preset-es-sumar-23j-2023-v1",
+  "control": "transfers",
+  "status": "component-analysis-only",
+  "mappingVersion": "3.0.0",
+  "programSources": [
+    {
+      "id": "sumar-23j",
+      "url": "https://movimientosumar.es/wp-content/uploads/2023/07/Un-Programa-para-ti.pdf",
+      "locators": ["p. 8, bono hipotecario; p. 14, bloque VII.1, herencia universal; p. 14, bloque VII.2, prestación por crianza; p. 14, bloque VII.3, pensiones"]
+    }
+  ],
+  "officialDataSources": [
+    {
+      "id": "ine-pop-68542",
+      "url": "https://www.ine.es/jaxiT3/Tabla.htm?t=68542",
+      "locator": "Censo anual de población 2023; residentes de 22 años a 1-1-2023: hombres 262775, mujeres 246143"
+    },
+    {
+      "id": "ine-gdp-cna2023",
+      "url": "https://www.ine.es/dyngs/Prensa/CNA2023.htm",
+      "locator": "PIB corriente 2023: 1498324 millones EUR"
+    },
+    {
+      "id": "model-transfer-baseline",
+      "url": "https://github.com/emartos/simulatupais/blob/main/docs/INVENTARIO-ECONOMICO-MODELO-0.1.0.md#hogares-renta-impuestos-y-consumo",
+      "locator": "Supuesto sintético del modelo: transferencias de referencia = 0.17 del PIB"
+    }
+  ],
+  "measures": [
+    {
+      "id": "SUMAR-TRANSFERS-001",
+      "summary": "Bono hipotecario de 1000 EUR a 1 millón de hogares; coste declarado por el programa: 1000 millones EUR",
+      "quantified": true,
+      "unit": "EUR por bono, programa no especifica recurrencia anual",
+      "treatment": "Componente monetario bruto de una medida de emergencia. No convertir en gasto recurrente anual del control."
+    },
+    {
+      "id": "SUMAR-TRANSFERS-002",
+      "summary": "Herencia universal de 20000 EUR a quienes cumplen 23 años",
+      "quantified": true,
+      "unit": "EUR por cohorte anual",
+      "treatment": "Coste de cohorte estimado con INE: 10178360000 EUR; equivalente a 3.99597856554076 % del baseline sintético de transferencias, redondearía a 4 pp si fuese el único componente. No es el valor agregado del programa."
+    },
+    {
+      "id": "SUMAR-TRANSFERS-003",
+      "summary": "Prestación universal de 200 EUR al mes por menor de 18 años, unificando prestaciones por hijo a cargo, complemento IMV infancia y deducción por madre trabajadora",
+      "quantified": true,
+      "unit": "EUR por menor elegible y mes",
+      "treatment": "Coste bruto por menor = 2400 EUR/año. No se calcula coste total sin población oficial 0–17 para fecha de aplicación ni se resta el gasto/beneficio fiscal de los tres programas sustituidos."
+    },
+    {
+      "id": "SUMAR-TRANSFERS-004",
+      "summary": "Aumento de pensiones mínimas y no contributivas hasta el umbral de pobreza",
+      "quantified": false,
+      "unit": null,
+      "treatment": "Impide calcular el coste neto sin una cuantía objetivo y población de aplicación plenamente definidas."
+    },
+    {
+      "id": "SUMAR-TRANSFERS-005",
+      "summary": "Aumento del complemento de brecha de género en dos periodos del 10 %",
+      "quantified": true,
+      "unit": "% del complemento",
+      "treatment": "La tasa está expresada, pero no se agrega sin base/coste del complemento en los años de aplicación y el resto de medidas del paquete."
+    },
+    {
+      "id": "SUMAR-TRANSFERS-006",
+      "summary": "Ampliar el IMV a jóvenes de 18–23, personas migrantes en situación irregular y hogares de bajos ingresos",
+      "quantified": false,
+      "unit": null,
+      "treatment": "El programa no fija importes, población elegible adicional ni solapamiento con IMV y rentas mínimas autonómicas."
+    },
+    {
+      "id": "SUMAR-TRANSFERS-007",
+      "summary": "Facilitar ayudas de emergencia social con tramitación simplificada",
+      "quantified": false,
+      "unit": null,
+      "treatment": "No se especifican cuantías, beneficiarios ni presupuesto; no se calcula un efecto neto."
+    }
+  ],
+  "formula": "Componentes conservados individualmente, sin agregación aplicada. La herencia universal tiene una aritmética de cohorte ilustrativa: 20000 EUR × (262775 + 246143 personas) = 10178360000 EUR, equivalente a 3.99597856554076 % del baseline sintético anual. No se trata como valor del control porque el inventario identifica otras prestaciones relevantes, sustituciones, poblaciones y periodos sin coste neto completo.",
+  "inputs": {
+    "inheritanceEURPerPerson": 20000,
+    "populationMenAge22": 262775,
+    "populationWomenAge22": 246143,
+    "nominalGDPMillionEUR": 1498324,
+    "syntheticTransferBaselineShareGDP": 0.17,
+    "mortgageVoucherCostEUR": 1000000000
+  },
+  "assumptions": [
+    "La cohorte de 22 años a 1-1-2023 aproxima a quienes cumplen 23 durante el año.",
+    "El bono hipotecario usa el coste agregado declarado por el programa y no se recalcula la elegibilidad.",
+    "La prestación por crianza sustituye instrumentos existentes; no se cuenta como nueva suma íntegra.",
+    "La pensión mínima y el complemento de brecha tienen efectos distintos; no se netean ni se duplican sin datos de coste.",
+    "El baseline de transferencias de 17 % PIB es una convención sintética documentada del motor, no dato oficial observado."
+  ],
+  "componentResults": [
+    {"measureId":"SUMAR-TRANSFERS-001","grossEUR":1000000000,"rawBaselinePercent":null,"appliedControlValue":null},
+    {"measureId":"SUMAR-TRANSFERS-002","grossEUR":10178360000,"rawBaselinePercent":3.99597856554076,"appliedControlValue":null},
+    {"measureId":"SUMAR-TRANSFERS-003","grossEUR":null,"grossEURPerEligiblePersonAnnual":2400,"eligiblePopulation":null,"rawBaselinePercent":null,"appliedControlValue":null},
+    {"measureId":"SUMAR-TRANSFERS-004","grossEUR":null,"rawBaselinePercent":null,"appliedControlValue":null},
+    {"measureId":"SUMAR-TRANSFERS-005","grossEUR":null,"rawBaselinePercent":null,"appliedControlValue":null},
+    {"measureId":"SUMAR-TRANSFERS-006","grossEUR":null,"rawBaselinePercent":null,"appliedControlValue":null},
+    {"measureId":"SUMAR-TRANSFERS-007","grossEUR":null,"rawBaselinePercent":null,"appliedControlValue":null}
+  ],
+  "aggregateResult": null,
+  "unit": "Gross EUR per stated measure; annual baseline comparison only where measure recurringity supports it",
+  "confidence": "LOW",
+  "sensitivity": "The inheritance cohort ±10% yields 3.596380708986684–4.395576422094836% of baseline. Child benefit gross cost changes by 2400 EUR/year per eligible child; eligible population and replaced expenditure remain unresolved. No annual ratio is assigned to the voucher. No aggregate interval is reported.",
+  "calculatedAt": "2026-10-05"
+}

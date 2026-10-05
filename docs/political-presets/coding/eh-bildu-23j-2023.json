@@ -1,0 +1,17 @@
+{
+  "actor": "Euskal Herria Bildu (EH Bildu)",
+  "actorType": "COALITION",
+  "election": "Elecciones Generales de España — 23J 2023",
+  "codingVersion": "1.0.0",
+  "programSource": "https://ehbildu.eus/dokumentuak/23J-COMPROMISO-DE-EUSKAL-HERRIA-BILDU.pdf",
+  "controls": {
+    "taxShift": {"score": null, "evidence": [], "rationale": "Los gravámenes sobre grandes fortunas y sectores concretos no expresan una dirección general de impuestos directos a hogares.", "confidence": null},
+    "progressivity": {"score": 1, "evidence": ["EHBILDU-FISC-001"], "rationale": "La propuesta de mayor contribución de grandes fortunas y capital apunta a mayor progresividad; un paso moderado.", "confidence": "MEDIUM", "reviewStatus": "APROBADO"},
+    "consumptionTax": {"score": null, "evidence": [], "rationale": "No hay propuesta estatal material sobre fiscalidad general del consumo.", "confidence": null},
+    "corporateTax": {"score": null, "evidence": [], "rationale": "Los gravámenes sectoriales citados no identifican una posición sobre la fiscalidad general de beneficios empresariales.", "confidence": null},
+    "transfers": {"score": 1, "evidence": ["EHBILDU-IMV-001"], "rationale": "El programa propone ampliar acceso y subir 12 % las cuantías del IMV; una prestación concreta permite codificar un aumento moderado del conjunto.", "confidence": "HIGH", "reviewStatus": "APROBADO"},
+    "publicInvestment": {"score": null, "evidence": [], "rationale": "Existen propuestas de inversión, pero parte significativa de la evidencia tiene componente territorial y no se considera suficiente para aplicar un paso estatal agregado.", "confidence": null, "reviewStatus": "UNMAPPED_TRAS_REVISION"},
+    "services": {"score": 1, "evidence": ["EHBILDU-SERV-001"], "rationale": "El programa contiene propuestas claras de refuerzo de Atención Primaria, salud mental y ampliación de servicios públicos, suficientes para codificar una dirección positiva moderada en gasto corriente en servicios públicos.", "confidence": "MEDIUM", "reviewStatus": "APROBADO"},
+    "investmentFriction": {"score": null, "evidence": [], "rationale": "No hay un paquete estatal operativo de cambios de regulación, licencias o trámites.", "confidence": null}
+  }
+}

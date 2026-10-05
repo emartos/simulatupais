@@ -1,0 +1,58 @@
+{
+  "actor": "BNG-23J-2023",
+  "election": "23J 2023",
+  "codingVersion": "1.0.0",
+  "modelVersion": "0.3.0",
+  "controls": {
+    "taxShift": {
+      "score": null,
+      "evidence": [],
+      "rationale": "La deflactación y capacidad fiscal se refieren al marco gallego; no hay una reforma estatal general identificada.",
+      "confidence": null
+    },
+    "progressivity": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las medidas de progresividad fiscal identificadas pertenecen al marco gallego y no se extrapolan.",
+      "confidence": null
+    },
+    "consumptionTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las medidas de fiscalidad ambiental y vivienda no definen una dirección estatal material de impuestos al consumo.",
+      "confidence": null
+    },
+    "corporateTax": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las propuestas de fiscalidad empresarial no fijan una dirección general estatal de la carga societaria.",
+      "confidence": null
+    },
+    "transfers": {
+      "score": 1,
+      "evidence": [
+        "BNG-TRANS-003"
+      ],
+      "rationale": "Propone elevar la pensión mínima al 60 % del salario medio y actualizarla con el IPC real. Es una mejora estatal de transferencias monetarias expresamente formulada; se codifica un aumento moderado.",
+      "confidence": "MEDIUM"
+    },
+    "publicInvestment": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las referencias a infraestructuras e inversión universitaria se orientan a Galicia y no se extrapolan al conjunto de España.",
+      "confidence": null
+    },
+    "services": {
+      "score": null,
+      "evidence": [],
+      "rationale": "La ampliación de sanidad y educación se refiere a Galicia; las metas presupuestarias territoriales no se escalan.",
+      "confidence": null
+    },
+    "investmentFriction": {
+      "score": null,
+      "evidence": [],
+      "rationale": "Las reformas administrativas y de regulación identificadas no forman un paquete estatal operativo para inversión privada.",
+      "confidence": null
+    }
+  }
+}
