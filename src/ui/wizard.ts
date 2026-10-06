@@ -35,13 +35,18 @@ export const WIZARD_QUESTIONS:WizardQuestion[] = [
   ]}
 ];
 
+export function guidedAnswerValue(base:Base,questionIndex:number,answer:WizardAnswer):number {
+  const key=WIZARD_QUESTIONS[questionIndex]!.key;
+  if(answer===null)return baselinePolicy(base)[key] as number;
+  return positionToControlValue(base,key as import('../political-presets/schema.js').PoliticalControlKey,answer as -2|-1|1|2);
+}
+
 export function wizardPolicy(base:Base,answers:readonly WizardAnswer[]):Policy {
   if(answers.length!==WIZARD_QUESTIONS.length)throw new Error('Completa las seis preguntas para preparar la simulación.');
   const policy=baselinePolicy(base);
   for(let i=0;i<answers.length;i++){
-    const answer=answers[i]!;if(answer===null)continue;
     const key=WIZARD_QUESTIONS[i]!.key;
-    (policy as unknown as Record<string,number>)[key]=positionToControlValue(base,key as import('../political-presets/schema.js').PoliticalControlKey,answer as -2|-1|1|2);
+    (policy as unknown as Record<string,number>)[key]=guidedAnswerValue(base,i,answers[i]!);
   }
   return validatePolicy(policy);
 }
@@ -64,7 +69,7 @@ export function wizardChoiceDetail(base:Base,questionIndex:number,choice:WizardC
     return `Importe total de referencia: ${fmt(start,2)} → ${fmt(amount,2)} % de la producción`;
   }
   if(questionIndex===3){
-    const gdp=base.values.gdp!,reference=baseline.services/gdp*100,result=policy.services/gdp*100;
+    const reference=baseline.services,result=policy.services;
     return `${fmt(reference,2)} → ${fmt(result,2)} % de la producción · unos ${fmt(result)} € por cada 100 €`;
   }
   if(questionIndex===4){

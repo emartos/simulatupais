@@ -59,7 +59,7 @@ html[data-theme="light"] .appearance-control button[aria-pressed="true"] { color
   grid-template-columns: minmax(0, 1.3fr) minmax(180px, 1fr) auto;
   align-items: start;
   gap: 18px;
-  margin: 0 0 10px;
+  margin: 0 0 16px;
   padding: 12px 16px;
   border: 1px solid var(--line);
   border-radius: 11px;
@@ -750,8 +750,8 @@ html[data-theme="light"] { --query-surface:#f0f4f8; --query-heading:#e6edf5; --q
 .dashboard-content > .kpi-grid {
   display:grid;
   grid-template-columns:repeat(6,minmax(0,1fr));
-  gap:8px;
-  margin:10px 0 14px;
+  gap:12px;
+  margin:0 0 16px;
 }
 .dashboard-content > .kpi-grid > .kpi {
   padding:0;
@@ -763,8 +763,8 @@ html[data-theme="light"] { --query-surface:#f0f4f8; --query-heading:#e6edf5; --q
   display:grid;
   align-content:start;
   width:100%;
-  min-height:92px;
-  padding:10px 12px 8px;
+  min-height:98px;
+  padding:12px 14px 10px;
   border:0;
   border-radius:inherit;
   background:transparent;
@@ -842,7 +842,7 @@ html[data-theme="light"] { --query-surface:#f0f4f8; --query-heading:#e6edf5; --q
 @media (max-width:640px) {
   .dashboard-content > .kpi-grid {
     display:flex;
-    gap:7px;
+    gap:10px;
     overflow-x:auto;
     overscroll-behavior-inline:contain;
     padding:2px 1px 7px;
@@ -861,7 +861,7 @@ html[data-theme="light"] { --query-surface:#f0f4f8; --query-heading:#e6edf5; --q
   .evolution-actions { margin-left:0; }
 }
 @media (min-width:1001px) {
-  .axis-overview { grid-template-columns:minmax(0,1.4fr) minmax(170px,1fr); align-items:center; gap:12px; padding:10px 14px; }
+  .axis-overview { grid-template-columns:minmax(0,1.4fr) minmax(170px,1fr); align-items:center; gap:12px; padding:14px 18px; }
   .economic-axis { display:grid; gap:0; }
   .economic-details { white-space:nowrap; }
   .economic-details > details > summary, .axis-overview-help > summary { min-height:32px; }
@@ -1099,3 +1099,30 @@ input:not([type="range"]), select, textarea, label, legend, output, summary, cod
   .topbar-tools { order:2; flex:1 1 100%; justify-content:space-between; margin-left:0; }
 }
 .kpi-explicit-unit { font-size:14px !important; }
+
+.tutorial-intro-action { margin-top:14px; }
+.tutorial-intro-action button { min-height:40px; font-size:14px; }
+.simulation-header .intro-copy .tutorial-feature { display:grid; grid-template-columns:clamp(180px,25%,260px) minmax(0,1fr); align-items:center; gap:20px; min-width:0; margin-top:10px; }
+.tutorial-thumbnail { position:relative; display:block; width:100%; padding:0; overflow:hidden; border:1px solid var(--line); border-radius:8px; background:transparent; }
+.tutorial-thumbnail img { display:block; width:100%; height:auto; aspect-ratio:16 / 9; object-fit:cover; }
+.tutorial-thumbnail:hover { border-color:var(--accent); background:transparent; }
+.tutorial-play { position:absolute; top:50%; left:50%; display:grid; place-items:center; width:54px; height:54px; border:2px solid #fff; border-radius:50%; background:rgb(0 0 0 / 52%); transform:translate(-50%,-50%); }
+.tutorial-play::before { content:""; width:0; height:0; margin-left:4px; border-top:10px solid transparent; border-bottom:10px solid transparent; border-left:15px solid #fff; }
+.tutorial-feature-copy { min-width:0; padding-left:20px; border-left:1px solid var(--line); }
+.tutorial-feature-title { display:inline; min-height:0; padding:0; border:0; border-radius:0; background:transparent; color:var(--text); font-size:18px; font-weight:600; text-align:left; }
+.tutorial-feature-title:hover { border-color:transparent; background:transparent; color:var(--accent); text-decoration:underline; }
+.simulation-header .intro-copy .tutorial-feature-copy p { max-width:54ch; margin:4px 0 0; font-size:14px; line-height:1.5; }
+.tutorial-modal { width:min(960px,100%); max-height:calc(100dvh - 24px); padding:20px; }
+.tutorial-modal header { display:flex; align-items:start; justify-content:space-between; gap:16px; }
+.tutorial-modal h2 { margin:0; font-size:20px; }
+.tutorial-modal header button { flex:none; min-height:40px; font-size:14px; }
+.tutorial-modal p { margin:8px 0 14px; font-size:14px; }
+.tutorial-modal video { display:block; width:100%; max-width:100%; aspect-ratio:16 / 9; border-radius:8px; background:#000; }
+@media (max-width:560px) {
+  .simulation-header .intro-copy .tutorial-feature { grid-template-columns:minmax(0,1fr); gap:12px; }
+  .tutorial-thumbnail { max-width:280px; }
+  .tutorial-feature-copy { padding-left:0; border-left:0; }
+  .tutorial-backdrop { padding:8px; }
+  .tutorial-modal { max-height:calc(100dvh - 16px); padding:12px; }
+  .tutorial-modal h2 { font-size:18px; }
+}

@@ -5,7 +5,7 @@ import { brotliCompressSync, constants as zlibConstants, gzipSync } from 'node:z
 const root = resolve('dist');
 const port = Number(process.env.PORT || 5173);
 const host = process.env.HOST || '127.0.0.1';
-const mime = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.json':'application/json; charset=utf-8', '.svg':'image/svg+xml', '.map':'application/json' };
+const mime = { '.html':'text/html; charset=utf-8', '.js':'text/javascript; charset=utf-8', '.css':'text/css; charset=utf-8', '.json':'application/json; charset=utf-8', '.svg':'image/svg+xml', '.map':'application/json', '.png':'image/png', '.webp':'image/webp', '.mp4':'video/mp4' };
 const compressible = new Set(['.html','.js','.css','.json','.svg']);
 const server = createServer(async (req,res) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end(); }

@@ -1,4 +1,5 @@
 import type { Policy } from '../core/types.js';
+import { BOUNDS } from '../core/policy.js';
 
 export type EconomicDecisionKey = 'taxShift'|'progressivity'|'consumptionTax'|'corporateTax'|'transfers'|'publicInvestment'|'services'|'investmentFriction';
 export interface EconomicDecision {
@@ -16,26 +17,34 @@ export const ECONOMIC_DECISIONS:ReadonlyArray<{key:EconomicDecisionKey;label:str
   {key:'investmentFriction',label:'Coste adicional de invertir',unit:'pp',meaning:'Parámetro simplificado de barreras al uso de activos productivos.'},
 ];
 
+/** Services are edited and shown in tenths of a GDP percentage point. Keep the raw policy for the engine. */
+export function decisionValueChanged(key:EconomicDecisionKey,from:number,to:number):boolean {
+  if(key!=='services')return from!==to;
+  const step=BOUNDS.services[2];
+  return Math.abs(to-from)>=step/2&&Math.round(from/step)!==Math.round(to/step);
+}
+
 export function economicDecisionChanges(reference:Policy,applied:Policy):EconomicDecision[] {
   return ECONOMIC_DECISIONS.flatMap(({key,label,unit,meaning})=>{
     const from=reference[key],to=applied[key];
-    return typeof from==='number'&&typeof to==='number'&&from!==to
+    return typeof from==='number'&&typeof to==='number'&&decisionValueChanged(key,from,to)
       ?[{key,label,unit,reference:from,applied:to,difference:to-from,meaning}]
       :[];
   });
 }
 
 export function formatDecisionValue(key:EconomicDecisionKey,value:number,unit:string):string {
-  const digits=key==='services'?8:1;
-  const formatted=new Intl.NumberFormat('es-ES',{maximumFractionDigits:digits}).format(value);
-  const signed=['taxShift','progressivity','transfers'].includes(key)&&value>0?'+':'';
-  const suffix=['taxShift','progressivity','investmentFriction'].includes(key)?` ${unit}`:key==='transfers'?` % (${signed}${formatted} respecto al importe inicial)`:` ${unit}`;
-  if(key==='transfers')return `variación ${formatted}% del importe inicial`;
-  return `${signed}${formatted}${suffix}`;
+  const format=(amount:number)=>new Intl.NumberFormat('es-ES',{maximumFractionDigits:1}).format(amount);
+  if(key==='transfers'){
+    const sign=value>0?'+':value<0?'−':'';
+    return `variación ${sign}${format(Math.abs(value))} % del importe inicial`;
+  }
+  const signed=['taxShift','progressivity'].includes(key)&&value>0?'+':'';
+  return `${signed}${format(value)} ${unit}`;
 }
 
 export function formatDecisionDifference(change:EconomicDecision):string {
-  const digits=change.key==='services'?8:1;
+  const digits=1;
   const value=new Intl.NumberFormat('es-ES',{maximumFractionDigits:digits}).format(Math.abs(change.difference));
   const sign=change.difference>0?'+':change.difference<0?'−':'';
   if(change.key==='transfers')return `${sign}${value} puntos porcentuales de variación`;

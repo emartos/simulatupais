@@ -5,7 +5,7 @@ import { performance } from 'node:perf_hooks';
 import { selectBase, fingerprint, REQUIRED } from '../dist/app/core/data.js';
 import { createExperiment, advance, fork, householdBudget, initialState, validateState, setShocksEnabled, configureBranch, netCapitalGrowth, capitalCapacityContribution, advanceCapitalStock } from '../dist/app/core/engine.js';
 import { baselinePolicy, validatePolicy, BOUNDS } from '../dist/app/core/policy.js';
-import { economicDecisionChanges, formatDecisionDifference, formatDecisionSummary } from '../dist/app/ui/economic-decisions.js';
+import { decisionValueChanged, economicDecisionChanges, formatDecisionDifference, formatDecisionSummary, formatDecisionValue } from '../dist/app/ui/economic-decisions.js';
 import { calculateChangeOrientation, ECONOMIC_AXIS_METHOD } from '../dist/app/ui/economic-axis-method.js';
 import { wizardPolicy } from '../dist/app/ui/wizard.js';
 import { exportSession, validateSession, restoreSession } from '../dist/app/core/session.js';
@@ -64,6 +64,24 @@ test('los procesos institucionales generan eventos, nunca ganadores',()=>{const 
 test('omitir el cuestionario y mantener todas las opciones conservan la misma politica inicial',()=>assert.deepEqual(wizardPolicy(base,Array(6).fill(null)),baselinePolicy(base)));
 test('el resumen compara los ocho controles aplicados sin agregar puntuaciones',()=>{const changed={...policy,corporateTax:22,investmentFriction:1.25,services:policy.services+0.1};const rows=economicDecisionChanges(policy,changed);assert.deepEqual(rows.map(r=>r.key),['corporateTax','services','investmentFriction']);assert.equal(rows.find(r=>r.key==='corporateTax').difference,2);near(rows.find(r=>r.key==='services').difference,0.1);assert.equal(rows.find(r=>r.key==='investmentFriction').difference,1.25);});
 test('restaurar exactamente la referencia elimina un cambio sin tolerancias de redondeo',()=>{const changed={...policy,services:policy.services+0.1};assert.equal(economicDecisionChanges(policy,changed).length,1);assert.equal(economicDecisionChanges(policy,{...changed,services:policy.services}).length,0);});
+test('la resolución visible de servicios evita microcambios en tabla y eje sin redondear la política',()=>{
+  const shown={...policy,services:19.2},raised={...policy,services:19.3};
+  assert.ok(Math.abs(policy.services-19.201875489641495)<0.01);
+  assert.equal(decisionValueChanged('services',policy.services,shown.services),false);
+  assert.equal(decisionValueChanged('services',policy.services,19.25),false,'menos de medio paso interno no es reforma');
+  assert.deepEqual(economicDecisionChanges(policy,shown),[]);
+  assert.equal(calculateChangeOrientation(policy,shown).hasIncludedChanges,false);
+  assert.equal(decisionValueChanged('services',policy.services,raised.services),true);
+  assert.deepEqual(economicDecisionChanges(policy,raised).map(row=>row.key),['services']);
+  assert.equal(calculateChangeOrientation(policy,raised).hasIncludedChanges,true);
+  assert.equal(formatDecisionDifference(economicDecisionChanges(policy,raised)[0]),'+0,1 % del PIB');
+  assert.equal(formatDecisionValue('services',policy.services,'% del PIB'),'19,2 % del PIB');
+});
+test('las transferencias usan signo tipográfico y espacio antes del porcentaje',()=>{
+  assert.equal(formatDecisionValue('transfers',10,'%'),'variación +10 % del importe inicial');
+  assert.equal(formatDecisionValue('transfers',-10,'%'),'variación −10 % del importe inicial');
+  assert.equal(formatDecisionValue('transfers',0,'%'),'variación 0 % del importe inicial');
+});
 test('diferencias de variación de ayudas y cambios de tipos conservan unidades claras',()=>{const rows=economicDecisionChanges(policy,{...policy,taxShift:2,transfers:10});assert.equal(formatDecisionDifference(rows[0]),'+2 pp');assert.equal(formatDecisionSummary(rows[1]),'Variación del importe total de ayudas: +10 puntos porcentuales de variación');});
 test('diagnóstico histórico: cambiar límites de normalización altera la etiqueta sin cambiar las decisiones',()=>{const p=structuredClone(policy),before=structuredClone(p);const old=(x,bounds)=>{const components=[(x.taxShift-bounds.tax[0])/(bounds.tax[1]-bounds.tax[0]),(x.progressivity-bounds.progressivity[0])/(bounds.progressivity[1]-bounds.progressivity[0]),(x.transfers-bounds.transfers[0])/(bounds.transfers[1]-bounds.transfers[0]),(x.publicInvestment-bounds.investment[0])/(bounds.investment[1]-bounds.investment[0])];const position=Math.max(0,Math.min(1,1-components.reduce((a,b)=>a+b,0)/4));return {position,proximity:[0,.5,1].map(anchor=>Math.round(100*(1-Math.abs(position-anchor))))};};const original=old(p,{tax:[-6,8],progressivity:[-4,6],transfers:[-25,35],investment:[1,6]});const changedBounds=old(p,{tax:[-7,7],progressivity:[-5,5],transfers:[-30,30],investment:[0,6]});assert.deepEqual(original.proximity,[41,91,59]);assert.deepEqual(changedBounds.proximity,[50,100,50]);assert.deepEqual(p,before);assert.deepEqual(economicDecisionChanges(policy,p),[]);});
 test('metodología de cambios v2 no asigna marcador a la configuración de partida',()=>{const result=calculateChangeOrientation(policy,policy);assert.equal(ECONOMIC_AXIS_METHOD.version,'2.0.0');assert.equal(result.hasIncludedChanges,false);assert.equal(result.coordinate,0);assert.equal(result.intensityPercent,0);});

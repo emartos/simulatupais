@@ -26,6 +26,21 @@ test('mantener conserva los valores de referencia con toda su precisión',()=>{
   assert.deepEqual(actual,reference);
   assert.equal(actual.services,reference.services);
 });
+test('las seis respuestas del drawer comparten la conversión del cuestionario inicial',()=>{
+  const reference=baselinePolicy(base),keys=['taxShift','progressivity','transfers','services','publicInvestment','consumptionTax'];
+  keys.forEach((key,index)=>{
+    const answers=Array(6).fill(null);answers[index]=1;
+    assert.equal(wizard.guidedAnswerValue(base,index,1),wizard.wizardPolicy(base,answers)[key],key);
+    assert.equal(wizard.guidedAnswerValue(base,index,null),reference[key],`Mantener: ${key}`);
+  });
+});
+test('la vista previa de servicios usa el porcentaje del control sin dividir otra vez por PIB',()=>{
+  const reference=baselinePolicy(base).services,answers=Array(6).fill(null),choice=wizard.WIZARD_QUESTIONS[3].options.find(option=>option.value===1);
+  const detail=wizard.wizardChoiceDetail(base,3,choice,answers),format=n=>new Intl.NumberFormat('es-ES',{maximumFractionDigits:2}).format(n);
+  assert.match(detail,new RegExp(`${format(reference)} → ${format(reference+0.1)} % de la producción`));
+  assert.match(detail,/unos 19,3 € por cada 100 €/);
+  assert.doesNotMatch(detail,/1,14|1,15 %/);
+});
 test('previsualizaciones de impuestos combinan nivel y progresividad mediante el motor',()=>{
   const answers=[2,2,null,null,null,null];
   const q1=wizard.WIZARD_QUESTIONS[0],q2=wizard.WIZARD_QUESTIONS[1];

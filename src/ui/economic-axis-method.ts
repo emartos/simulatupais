@@ -1,4 +1,5 @@
 import type { Policy } from '../core/types.js';
+import { decisionValueChanged } from './economic-decisions.js';
 
 /** Experimental description of policy changes relative to an experiment's baseline. */
 export interface EconomicAxisDimension {
@@ -60,7 +61,7 @@ export function calculateChangeOrientation(
 ): EconomicAxisResult {
   const changes = method.variables.flatMap(dimension => {
     const delta = applied[dimension.key] - reference[dimension.key];
-    if (delta === 0) return [];
+    if (!decisionValueChanged(dimension.key,reference[dimension.key],applied[dimension.key])) return [];
     const normalizedDelta = delta / dimension.deltaScale;
     const rightSign = dimension.directionOnIncrease === 'left' ? -1 : 1;
     return [{ key: dimension.key, delta, normalizedDelta, weightedContribution: normalizedDelta * rightSign * dimension.weight }];
