@@ -43,7 +43,7 @@ test('la representación es canónica y excluye nombres y metadatos privados',()
   const url=urlFor(exp);
   assert.equal(urlFor(renamed),url);assert.equal(urlFor(shuffled),url);
   assert.ok(!url.includes('persona')&&!JSON.stringify(raw(url)).includes('persona@example.com'));
-  assert.deepEqual(new URL(url).searchParams.keys().toArray(),['v','s']);
+  assert.deepEqual([...new URL(url).searchParams.keys()],['v','s']);
   assert.equal(raw(url)[0],dataset.countryCode);assert.equal(raw(url)[1],base.year);
 });
 test('versiones, tipos, rangos y estado incompleto fallan de forma controlada',()=>{

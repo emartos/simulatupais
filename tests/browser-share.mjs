@@ -110,6 +110,9 @@ async function runFlow(width,label,baseUrl){
   await author.navigate(variant);
   assert.notEqual(await author.evaluate(`JSON.stringify([...document.querySelectorAll('.kpi-main')].map(item=>item.textContent))`),original.kpis,'URL distinta prevalece sobre IndexedDB');
   assert.deepEqual(await storedSession(author),localBefore,'abrir enlace no destruye la sesión local previa');
+  await author.navigate(`${baseUrl}/?v=99&s=invalid`);
+  assert.ok(await waitFor(async()=>author.evaluate(`document.querySelector('#toast')?.textContent.includes('No se pudo abrir el escenario')`),'error de enlace'),'enlace incompatible informa y abre baseline seguro');
+  assert.deepEqual(await storedSession(author),localBefore,'un enlace inválido tampoco modifica IndexedDB');
   assert.deepEqual(author.errors,[]);assert.deepEqual(recipient.errors,[]);
   author.close();recipient.close();
   return {original:original.url,variant};
@@ -122,6 +125,7 @@ try{
   await editorial.navigate(`${baseUrl}/#/espana/inversion-publica-gradual`);
   assert.equal(await editorial.evaluate(`document.querySelector('#editorial-title')?.textContent`),'Inversión pública gradual');
   assert.ok(await editorial.evaluate(`document.querySelector('.editorial-scenario')?.textContent.includes('¿Qué muestra el modelo')`));
+  assert.equal(await editorial.evaluate(`document.querySelectorAll('.kpi-main').length`),6,'editorial muestra resultados recalculados');
   await editorial.screenshot('growth-editorial-mobile');
   await editorial.click('[data-action="editorial-modify"]');assert.equal(await editorial.evaluate(`!!document.querySelector('.decisions-sidebar')`),true,'editorial editable');
   await editorial.navigate(`${baseUrl}/#/espana/no-existe`);
