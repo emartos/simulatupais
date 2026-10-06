@@ -37,6 +37,12 @@ La sesión se guarda en este navegador y dispositivo. No se sincroniza. Borrar l
 
 La versión de la aplicación/modelo y la versión/revisión del catálogo se muestran por separado en el pie. Una semilla reproduce los mismos acontecimientos externos con iguales datos y reglas; no garantiza iguales resultados con políticas diferentes.
 
+## Compartir escenarios
+
+Tras configurar y avanzar una simulación, «Compartir escenario» genera un enlace versionado que permite a otra persona recalcular la misma configuración y los mismos resultados en su navegador. También se puede copiar el enlace, abrir las opciones de WhatsApp o X y descargar una tarjeta PNG creada localmente. Quien recibe el enlace puede modificar decisiones y compartir su variante. El enlace tiene prioridad para esa apertura y no sustituye la sesión local que ya estuviera guardada.
+
+Hay dos escenarios de demostración declarados en el repositorio: [inversión pública gradual](https://simulatupais.org/#/espana/inversion-publica-gradual) y [servicios públicos graduales](https://simulatupais.org/#/espana/servicios-publicos-gradual). La URL codifica solo condiciones de simulación, sin nombres, identificadores personales ni resultados calculados. Los eventos de crecimiento son locales y no se envían a ningún proveedor. El formato, sus límites de compatibilidad, las reglas editoriales y la preview social genérica se explican en [Escenarios compartibles](docs/ESCENARIOS-COMPARTIBLES.md).
+
 ## Verificación
 
 ```bash

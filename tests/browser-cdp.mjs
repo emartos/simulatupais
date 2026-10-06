@@ -101,6 +101,38 @@ try {
   assert.equal(await evaluate(`JSON.stringify({date:document.querySelector('#sim-date')?.textContent,kpis:document.querySelector('.kpi-grid')?.textContent,month:document.querySelector('#month-counter')?.textContent})`),tutorialState,'abrir y cerrar el tutorial conserva la simulación');
   await click('.tutorial-feature-title');await checkTutorial();await click('[data-action="close-tutorial"]');
   assert.equal(await evaluate(`document.activeElement?.classList.contains('tutorial-feature-title')`),true,'el título también abre el modal y recupera el foco');
+  const navState=()=>evaluate(`(()=>{const header=document.querySelector('.topbar'),brand=header.querySelector('.brand'),toggle=header.querySelector('.mobile-menu-toggle'),nav=header.querySelector('#primary-navigation'),tools=header.querySelector('.topbar-tools'),visible=e=>getComputedStyle(e).display!=='none'&&e.getBoundingClientRect().width>0;return {height:header.getBoundingClientRect().height,brand:visible(brand),toggle:visible(toggle),tools:visible(tools),nav:visible(nav),country:[...header.querySelectorAll('.global-country')].filter(visible).length,year:[...header.querySelectorAll('.global-country > div span')].filter(visible).length,settings:[...header.querySelectorAll('.settings-trigger')].filter(visible).length,overflow:document.documentElement.scrollWidth>innerWidth,brandRight:brand.getBoundingClientRect().right,toggleLeft:toggle.getBoundingClientRect().left,navRight:nav.getBoundingClientRect().right}})()`);
+  for(const width of [320,375,390,430]){
+    await cdp('Emulation.setDeviceMetricsOverride',{width,height:844,deviceScaleFactor:1,mobile:true});await evaluate('window.scrollTo(0,0)');
+    const closed=await navState();
+    assert.equal(closed.brand&&closed.toggle&&!closed.tools&&!closed.nav&&closed.country===0&&closed.year===0&&closed.settings===0&&closed.brandRight<closed.toggleLeft&&!closed.overflow,true,`cabecera móvil de ${width}px solo muestra marca y menú sin colisión ni desbordamiento`);
+    assert.equal(closed.height,60,`cabecera móvil compacta de ${width}px`);
+    await screenshot(`navegacion-cabecera-${width}`);
+    await click('.mobile-menu-toggle');
+    const opened=await navState();
+    assert.equal(opened.nav&&opened.country===1&&opened.year===1&&opened.height===closed.height&&!opened.overflow&&opened.navRight<=width,true,`drawer móvil de ${width}px muestra un solo contexto, cabe y no cambia la altura de cabecera`);
+    assert.equal(await evaluate(`(()=>{const n=document.querySelector('#primary-navigation');return n.getAttribute('role')==='dialog'&&n.getAttribute('aria-modal')==='true'&&n.textContent.includes('España')&&n.textContent.includes('Datos de partida: 2025')&&n.querySelector('.mobile-nav-configure')?.textContent.trim()==='Configurar'&&n.querySelector('.mobile-nav-settings')?.textContent.trim()==='Preferencias'&&!n.textContent.includes('Ajustes')&&document.querySelector('main').inert&&document.activeElement?.getAttribute('data-action')==='menu-close'&&document.elementFromPoint(innerWidth-20,200)?.closest('#primary-navigation')===n&&[...n.querySelectorAll('button')].filter(e=>getComputedStyle(e).display!=='none').every(e=>e.getBoundingClientRect().height>=44)})()`),true,`drawer móvil de ${width}px agrupa contexto, queda delante del contenido y ofrece acciones accesibles`);
+    if(width===320||width===390)await screenshot(`navegacion-drawer-${width}`);
+    await click('.mobile-nav-heading [data-action="menu-close"]');
+    assert.equal(await evaluate(`document.activeElement?.classList.contains('mobile-menu-toggle')&&!document.querySelector('main').inert`),true,`cerrar drawer de ${width}px devuelve el foco`);
+  }
+  await cdp('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+  await click('.mobile-menu-toggle');await click('.mobile-nav-configure');
+  assert.equal(await evaluate(`!!document.querySelector('.decisions-sidebar')&&!document.querySelector('#primary-navigation').classList.contains('menu-open')&&document.activeElement?.getAttribute('data-action')==='close-decisions'`),true,'Configurar móvil abre el panel de decisiones y cierra el menú');
+  await click('[data-action="close-decisions"]');
+  assert.equal(await evaluate(`document.activeElement?.classList.contains('mobile-menu-toggle')`),true,'cerrar decisiones devuelve el foco al menú móvil');
+  await click('.mobile-menu-toggle');await cdp('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27,nativeVirtualKeyCode:27});await cdp('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27,nativeVirtualKeyCode:27});
+  assert.equal(await evaluate(`!document.querySelector('#primary-navigation').classList.contains('menu-open')&&document.activeElement?.classList.contains('mobile-menu-toggle')`),true,'Escape cierra el drawer y devuelve el foco');
+  await click('.mobile-menu-toggle');await click('.mobile-nav-context [data-tab="sources"]');
+  assert.equal(await evaluate(`!!document.querySelector('.source-table')&&!document.querySelector('#primary-navigation').classList.contains('menu-open')`),true,'el año de partida conserva el acceso a fuentes y cierra el menú');
+  await click('.mobile-menu-toggle');await click('#primary-navigation [data-tab="lab"]');
+  await click('.mobile-menu-toggle');await click('.mobile-nav-settings');
+  assert.equal(await evaluate(`!!document.querySelector('.settings-modal')&&!document.querySelector('#primary-navigation').classList.contains('menu-open')`),true,'Preferencias conserva los ajustes y cierra el menú móvil');
+  await click('.settings-modal [data-action="close-settings"]');
+  assert.equal(await evaluate(`document.activeElement?.classList.contains('mobile-menu-toggle')`),true,'cerrar preferencias devuelve el foco al menú móvil');
+  await cdp('Emulation.setDeviceMetricsOverride',{width:1280,height:1050,deviceScaleFactor:1,mobile:false});
+  const desktopNav=await navState();
+  assert.equal(desktopNav.brand&&!desktopNav.toggle&&desktopNav.tools&&desktopNav.nav&&desktopNav.country===1&&desktopNav.year===1&&desktopNav.settings===1&&!desktopNav.overflow,true,'desktop conserva país, año, ajustes y navegación');
   await cdp('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
   assert.equal(await evaluate(`(()=>{const t=document.querySelector('.tutorial-thumbnail').getBoundingClientRect(),c=document.querySelector('.tutorial-feature-copy').getBoundingClientRect();return document.documentElement.scrollWidth<=innerWidth&&t.width>=180&&c.top>=t.bottom})()`),true,'la home móvil apila la miniatura y el texto sin desbordar');
   await evaluate(`document.querySelector('.tutorial-feature').scrollIntoView({block:'center',behavior:'instant'})`);
