@@ -5,6 +5,9 @@ import { mkdtemp, mkdir, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
+import { readFileSync } from 'node:fs';
+
+const runtimeId=JSON.parse(readFileSync('dist/build-info.json')).replayRuntimeId;
 
 const root=path.resolve('.'),temp=await mkdtemp(path.join(os.tmpdir(),'polis-growth-'));
 const server=spawn(process.execPath,['scripts/serve.mjs'],{cwd:root,env:{...process.env,PORT:'0',HOST:'127.0.0.1'},stdio:['ignore','pipe','pipe']});
@@ -47,7 +50,7 @@ async function buildScenario(browser,baseUrl,label){
   }
   await browser.click('[data-action="share-options"]');
   const url=await browser.evaluate(`document.querySelector('#share-url-manual')?.value`);
-  assert.ok(url.includes('?v=1&s='),'URL compartible versionada');
+  assert.ok(url.includes(`?v=2&r=${runtimeId}&s=`),'URL compartible versionada y ligada al runtime');
   assert.equal(await browser.evaluate(`document.documentElement.scrollWidth<=innerWidth`),true,`${label} sin overflow`);
   assert.equal(await browser.evaluate(`document.querySelector('#share-card-preview')?.width`),1200,'tarjeta Canvas generada');
   if(label==='mobile'){

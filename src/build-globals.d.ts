@@ -6,5 +6,6 @@ declare const __PROJECT_CONFIG__: {
     engineVersion: string;
     commitSha: string | null;
     commitUrl: string | null;
+    replayRuntimeId: string;
   };
 };

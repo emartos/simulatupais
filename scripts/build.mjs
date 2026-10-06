@@ -4,6 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { build, transform } from 'esbuild';
 import { projectConfig } from './project-config.mjs';
+import { replayRuntimeId } from './replay-runtime.mjs';
 const require = createRequire(import.meta.url);
 let compiler;
 try { compiler = require.resolve('typescript/bin/tsc'); }
@@ -27,13 +28,6 @@ if (!commitSha && !suppliedSha) {
   const head = spawnSync('git', ['rev-parse', 'HEAD'], {encoding: 'utf8'});
   if (status.status === 0 && !status.stdout && head.status === 0 && shaPattern.test(head.stdout.trim())) commitSha = head.stdout.trim().toLowerCase();
 }
-const buildInfo = {
-  appVersion: packageInfo.version,
-  engineVersion,
-  commitSha,
-  commitUrl: commitSha ? `${projectConfig.repositoryUrl}/commit/${commitSha}` : null
-};
-const project = {...projectConfig, build:buildInfo};
 cpSync('public', 'dist', { recursive: true });
 const css = await transform(`${readFileSync('dist/style.css', 'utf8')}\n${readFileSync('dist/polish.css', 'utf8')}`, { loader: 'css', minify: true, target: 'es2022' });
 writeFileSync('dist/style.css', css.code);
@@ -41,12 +35,26 @@ rmSync('dist/polish.css', { force: true });
 const bundledApp = 'dist/.bundled-app';
 mkdirSync('dist/app', { recursive: true });
 await build({
-  entryPoints: ['src/main.ts', 'src/worker.ts'], outdir: bundledApp,
+  entryPoints: ['src/worker.ts', 'src/replay-kernel.ts'], outdir: bundledApp,
+  bundle: true, minify: true, format: 'esm', platform: 'browser', target: 'es2022',
+  external: ['./worker.js', '../data/spain.json']
+});
+const runtimeId=replayRuntimeId(readFileSync(`${bundledApp}/worker.js`),readFileSync('dist/data/spain.json'),readFileSync(`${bundledApp}/replay-kernel.js`));
+const buildInfo = {
+  appVersion: packageInfo.version,
+  engineVersion,
+  commitSha,
+  commitUrl: commitSha ? `${projectConfig.repositoryUrl}/commit/${commitSha}` : null,
+  replayRuntimeId: runtimeId
+};
+const project = {...projectConfig, build:buildInfo};
+await build({
+  entryPoints: ['src/main.ts', 'src/replay-entry.ts'], outdir: bundledApp,
   bundle: true, minify: true, format: 'esm', platform: 'browser', target: 'es2022',
   external: ['./worker.js', '../data/spain.json'],
   define: { __PROJECT_CONFIG__: JSON.stringify(project) }
 });
-for (const file of ['main.js', 'worker.js']) {
+for (const file of ['main.js', 'worker.js', 'replay-entry.js', 'replay-kernel.js']) {
   writeFileSync(`dist/app/${file}`, readFileSync(`${bundledApp}/${file}`));
   rmSync(`dist/app/${file}.map`, { force: true });
 }

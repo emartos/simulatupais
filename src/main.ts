@@ -438,7 +438,10 @@ function simulationControls():string {
 }
 
 function shareSection():string {
-  const id=observedBranchId,url=scenarioUrl(exp,datasetHash,dataset.countryCode,id,location.origin);
+  const id=observedBranchId;
+  let url:string;
+  try{url=scenarioUrl(exp,datasetHash,dataset.countryCode,id,location.origin,BUILD_INFO.replayRuntimeId);}
+  catch(error){return `<section class="scenario-sharing" aria-labelledby="share-title"><h2 id="share-title">Tu escenario</h2><p>${esc((error as Error).message)} Puedes exportar la simulación desde Preferencias.</p></section>`;}
   const summary=scenarioSummary(exp,id),message=shareText(summary),social=socialShareUrls(url,message);
   const metrics=scenarioMetrics(branch(id));
   return `<section class="scenario-sharing" aria-labelledby="share-title"><div class="scenario-sharing-copy"><h2 id="share-title">Tu escenario</h2><p>${esc(summary)}</p><p>Este resultado corresponde a un escenario simulado. No es una predicción. <button data-tab="model" class="share-method-link">Cómo se calcula</button></p></div><div class="scenario-sharing-actions"><button type="button" data-action="share-primary" class="primary">Compartir escenario</button><button type="button" data-action="share-options" aria-expanded="${shareOpen}" aria-controls="share-options-panel">Opciones</button></div>${shareOpen?`<div class="share-options-panel" id="share-options-panel" role="group" aria-label="Opciones para compartir"><p>${esc(message)}</p>${metrics.length?`<p class="share-result-summary">${metrics.slice(0,3).map(item=>`${esc(item.label)}: ${esc(item.value)}`).join(' · ')}</p>`:''}<div class="share-option-buttons"><button type="button" data-action="share-copy">Copiar enlace</button><a href="${esc(social.whatsapp)}" data-share-method="whatsapp" target="_blank" rel="noopener noreferrer">WhatsApp</a><a href="${esc(social.x)}" data-share-method="x" target="_blank" rel="noopener noreferrer">X</a><button type="button" data-action="share-image">Descargar imagen</button></div><label for="share-url-manual">Enlace del escenario</label><input id="share-url-manual" type="text" readonly value="${esc(url)}"><canvas id="share-card-preview" width="1200" height="630" role="img" aria-label="Vista previa de la tarjeta del escenario"></canvas></div>`:''}</section>`;
@@ -459,7 +462,9 @@ function markScenarioModified():void {
   }
 }
 async function shareCurrentScenario():Promise<void> {
-  const url=scenarioUrl(exp,datasetHash,dataset.countryCode,observedBranchId,location.origin);
+  let url:string;
+  try{url=scenarioUrl(exp,datasetHash,dataset.countryCode,observedBranchId,location.origin,BUILD_INFO.replayRuntimeId);}
+  catch(error){showToast((error as Error).message,true);return;}
   const text=shareText(scenarioSummary(exp,observedBranchId));
   if(typeof navigator.share==='function'){
     emitGrowthEvent({name:'share_clicked',method:'native'});
@@ -470,7 +475,9 @@ async function shareCurrentScenario():Promise<void> {
 }
 async function copyScenarioUrl():Promise<void> {
   emitGrowthEvent({name:'share_clicked',method:'copy'});
-  const url=scenarioUrl(exp,datasetHash,dataset.countryCode,observedBranchId,location.origin);
+  let url:string;
+  try{url=scenarioUrl(exp,datasetHash,dataset.countryCode,observedBranchId,location.origin,BUILD_INFO.replayRuntimeId);}
+  catch(error){showToast((error as Error).message,true);return;}
   try{await navigator.clipboard.writeText(url);showToast('Enlace copiado');emitGrowthEvent({name:'share_completed',method:'copy'});}
   catch{showToast('No se pudo copiar el enlace. Puedes copiarlo manualmente.',true);const input=document.querySelector<HTMLInputElement>('#share-url-manual');input?.focus();input?.select();}
 }
@@ -697,7 +704,7 @@ async function boot():Promise<void> {
     if(new URL(location.href).searchParams.has('s')||new URL(location.href).searchParams.has('v')){
       linked=true;preserveStoredSession=true;
       try{
-        const shared=readScenarioUrl(new URL(location.href),base,datasetHash,dataset.countryCode);
+        const shared=readScenarioUrl(new URL(location.href),base,datasetHash,dataset.countryCode,BUILD_INFO.replayRuntimeId);
         if(!shared)throw new Error('El enlace del escenario está incompleto.');
         exp=await command('RESTORE',shared.session);observedBranchId=shared.viewedBranch;configuredBranchId=observedBranchId;compareSourceId=exp.comparisonOriginId||'B';draft={...branch(configuredBranchId).policy};
         scenarioSource='shared_url';restored=true;

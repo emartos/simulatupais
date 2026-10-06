@@ -21,7 +21,9 @@ Abre `http://127.0.0.1:5173`. No abras `dist/index.html` con `file://`. Para usa
 
 ## Publicación
 
-Publica el contenido de `dist/` después de ejecutar `npm run build`; no publiques `public/` directamente. El build agrupa la aplicación y combina sus hojas de estilo para evitar la cascada de módulos y CSS observada en la versión de producción. Cada compilación regenera `dist/` desde cero para que no queden módulos obsoletos de builds anteriores.
+Publica el contenido de `dist/`; no publiques `public/` directamente. El build agrupa la aplicación y combina sus hojas de estilo para evitar la cascada de módulos y CSS observada en la versión de producción. Cada compilación regenera `dist/` desde cero para que no queden módulos obsoletos de builds anteriores.
+
+Gate de release para cualquier runtime público: **1)** `npm run build`, **2)** tests y regresión, **3)** `npm run replay:archive` para un runtime nuevo o `npm run replay:verify` si el ID ya está archivado y sólo cambió la interfaz, **4)** verificar `public/replay/runtime-manifest.json`, **5)** build y E2E del runtime archivado, **6)** desplegar `dist/`. El snapshot debe entrar en la misma release que genere sus enlaces; no se reconstruye meses después. Revisa [Durabilidad de enlaces](docs/ESCENARIOS-COMPARTIBLES.md#durabilidad-de-enlaces) antes de cambiar motor, dataset o restauración.
 
 ## Uso
 
@@ -39,7 +41,7 @@ La versión de la aplicación/modelo y la versión/revisión del catálogo se mu
 
 ## Compartir escenarios
 
-Tras configurar y avanzar una simulación, «Compartir escenario» genera un enlace versionado que permite a otra persona recalcular la misma configuración y los mismos resultados en su navegador. También se puede copiar el enlace, abrir las opciones de WhatsApp o X y descargar una tarjeta PNG creada localmente. Quien recibe el enlace puede modificar decisiones y compartir su variante. El enlace tiene prioridad para esa apertura y no sustituye la sesión local que ya estuviera guardada.
+Tras configurar y avanzar una simulación, «Compartir escenario» genera un enlace versionado ligado a un runtime inmutable que permite a otra persona recalcular la misma configuración y los mismos resultados en su navegador. También se puede copiar el enlace, abrir las opciones de WhatsApp o X y descargar una tarjeta PNG creada localmente. Quien recibe el enlace puede modificar decisiones y compartir su variante. El enlace tiene prioridad para esa apertura y no sustituye la sesión local que ya estuviera guardada.
 
 Hay dos escenarios de demostración declarados en el repositorio: [inversión pública gradual](https://simulatupais.org/#/espana/inversion-publica-gradual) y [servicios públicos graduales](https://simulatupais.org/#/espana/servicios-publicos-gradual). La URL codifica solo condiciones de simulación, sin nombres, identificadores personales ni resultados calculados. Los eventos de crecimiento son locales y no se envían a ningún proveedor. El formato, sus límites de compatibilidad, las reglas editoriales y la preview social genérica se explican en [Escenarios compartibles](docs/ESCENARIOS-COMPARTIBLES.md).
 

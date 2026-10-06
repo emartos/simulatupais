@@ -5,16 +5,18 @@ import { selectBase, fingerprint } from '../dist/app/core/data.js';
 import { createPrimaryExperiment, advance, configureBranch, compareFrom } from '../dist/app/core/engine.js';
 import { baselinePolicy } from '../dist/app/core/policy.js';
 import { restoreSession } from '../dist/app/core/session.js';
-import { readScenarioUrl, scenarioUrl } from '../dist/app/ui/shared-scenario.js';
+import { MAX_SHARED_URL_LENGTH, readScenarioUrl, scenarioUrl } from '../dist/app/ui/shared-scenario.js';
 import { changedDecisionsCount, scenarioMetrics, scenarioSummary, shareText, socialShareUrls } from '../dist/app/ui/scenario-share.js';
 import { EDITORIAL_SCENARIOS, editorialSlug, findEditorialScenario } from '../dist/app/ui/editorial-scenarios.js';
 import { emitGrowthEvent } from '../dist/app/ui/growth-events.js';
 
 const dataset=JSON.parse(readFileSync(new URL('../public/data/spain.json',import.meta.url)));
 const base=selectBase(dataset),hash=fingerprint(JSON.stringify(dataset)),origin='https://simulatupais.org';
+const buildInfo=JSON.parse(readFileSync(new URL('../dist/build-info.json',import.meta.url)));
+const runtimeId=buildInfo.replayRuntimeId;
 const policy=baselinePolicy(base);
-const urlFor=(exp,view='B')=>scenarioUrl(exp,hash,dataset.countryCode,view,origin);
-const read=url=>readScenarioUrl(new URL(url),base,hash,dataset.countryCode);
+const urlFor=(exp,view='B')=>scenarioUrl(exp,hash,dataset.countryCode,view,origin,runtimeId);
+const read=url=>readScenarioUrl(new URL(url),base,hash,dataset.countryCode,runtimeId);
 const raw=url=>JSON.parse(Buffer.from(new URL(url).searchParams.get('s'),'base64url').toString());
 const withRaw=(url,wire)=>{const next=new URL(url);next.searchParams.set('s',Buffer.from(JSON.stringify(wire)).toString('base64url'));return next.toString();};
 
@@ -22,7 +24,7 @@ test('un escenario simple conserva inputs, trayectoria y recarga sin almacenamie
   let exp=createPrimaryExperiment(base,1847,{...policy,taxShift:2,transfers:10,services:19.3},false);
   exp=advance(exp,12);exp=configureBranch(exp,'B',{...exp.b.policy,publicInvestment:3.3});exp=advance(exp,24);
   const url=urlFor(exp),shared=read(url),replayed=restoreSession(shared.session,base);
-  assert.equal(new URL(url).searchParams.get('v'),'1');assert.equal(shared.viewedBranch,'B');
+  assert.equal(new URL(url).searchParams.get('v'),'2');assert.equal(new URL(url).searchParams.get('r'),runtimeId);assert.equal(shared.viewedBranch,'B');
   assert.equal(replayed.seed,exp.seed);assert.equal(replayed.shocksEnabled,exp.shocksEnabled);
   assert.deepEqual(replayed.b.initialPolicy,exp.b.initialPolicy);assert.deepEqual(replayed.b.policyChanges,exp.b.policyChanges);
   assert.deepEqual(replayed.b.history,exp.b.history);assert.deepEqual(replayed.b.state,exp.b.state);
@@ -43,7 +45,7 @@ test('la representación es canónica y excluye nombres y metadatos privados',()
   const url=urlFor(exp);
   assert.equal(urlFor(renamed),url);assert.equal(urlFor(shuffled),url);
   assert.ok(!url.includes('persona')&&!JSON.stringify(raw(url)).includes('persona@example.com'));
-  assert.deepEqual([...new URL(url).searchParams.keys()],['v','s']);
+  assert.deepEqual([...new URL(url).searchParams.keys()],['v','r','s']);
   assert.equal(raw(url)[0],dataset.countryCode);assert.equal(raw(url)[1],base.year);
 });
 test('versiones, tipos, rangos y estado incompleto fallan de forma controlada',()=>{
@@ -56,6 +58,23 @@ test('versiones, tipos, rangos y estado incompleto fallan de forma controlada',(
   wire[13][0][0]='2';assert.throws(()=>read(withRaw(url,wire)),/válidas/i);
   assert.throws(()=>read(withRaw(url,wire.slice(0,8))),/incompleto/i);
   const wrongYear=raw(url);wrongYear[1]=2024;assert.throws(()=>read(withRaw(url,wrongYear)),/otro país, año/);
+});
+test('v2 exige runtime válido y v1 solo se lee como compatibilidad pre-release',()=>{
+  const url=urlFor(createPrimaryExperiment(base,1847,policy));
+  const missing=new URL(url);missing.searchParams.delete('r');assert.throws(()=>read(missing),/runtime/);
+  const malformed=new URL(url);malformed.searchParams.set('r','../otro');assert.throws(()=>read(malformed),/runtime/);
+  const other=new URL(url);other.searchParams.set('r',`rt-${'f'.repeat(32)}`);assert.throws(()=>read(other),/no está disponible/);
+  const legacy=new URL(url);legacy.searchParams.set('v','1');legacy.searchParams.delete('r');
+  assert.equal(read(legacy).session.seed,1847);
+  assert.equal(new URL(urlFor(createPrimaryExperiment(base,1847,policy))).searchParams.get('v'),'2');
+});
+test('el límite de 8 KiB admite escenarios ordinarios y nunca trunca los excepcionales',()=>{
+  const exp=advance(createPrimaryExperiment(base,1847,policy),120);
+  assert.ok(urlFor(exp).length<MAX_SHARED_URL_LENGTH);
+  const changes=Array.from({length:180},(_,month)=>({month,policy:{...policy,transfers:month%2?10:20}}));
+  const huge={...exp,b:{...exp.b,policyChanges:changes}};
+  assert.throws(()=>urlFor(huge),/demasiados cambios/);
+  assert.equal(MAX_SHARED_URL_LENGTH,8192);
 });
 test('resumen y enlaces sociales son neutros y deterministas',()=>{
   const exp=advance(createPrimaryExperiment(base,1847,{...policy,taxShift:2,transfers:10}),120);

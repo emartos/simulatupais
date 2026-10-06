@@ -3,8 +3,9 @@ import { MODEL_VERSION } from '../core/model.js';
 import { validatePolicy } from '../core/policy.js';
 import { exportSession, validateSession } from '../core/session.js';
 
-export const SCENARIO_URL_VERSION=1;
-const MAX_PAYLOAD_LENGTH=150_000;
+export const SCENARIO_URL_VERSION=2;
+export const MAX_SHARED_URL_LENGTH=8192;
+const RUNTIME_ID_PATTERN=/^rt-[a-f0-9]{32}$/;
 const ELECTIONS=['competitive','single-party','appointment'] as const;
 type BranchRecipe=SessionV2['branches']['A'];
 export interface SharedScenario { session:SessionV2; viewedBranch:'A'|'B'; }
@@ -40,12 +41,13 @@ function encode(value:unknown):string {
   return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 }
 function decode(payload:string):unknown {
-  if(!payload||payload.length>MAX_PAYLOAD_LENGTH||!/^[A-Za-z0-9_-]+$/.test(payload))throw new Error('El enlace del escenario no es válido.');
+  if(!payload||payload.length>MAX_SHARED_URL_LENGTH||!/^[A-Za-z0-9_-]+$/.test(payload))throw new Error('El enlace del escenario no es válido.');
   const padded=payload.replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(payload.length/4)*4,'=');
   try{return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(atob(padded),char=>char.charCodeAt(0))));}
   catch{throw new Error('El enlace del escenario no se puede leer.');}
 }
-export function scenarioUrl(exp:Experiment,datasetHash:string,countryCode:string,viewedBranch:'A'|'B',origin:string):string {
+export function scenarioUrl(exp:Experiment,datasetHash:string,countryCode:string,viewedBranch:'A'|'B',origin:string,runtimeId:string):string {
+  if(!RUNTIME_ID_PATTERN.test(runtimeId))throw new Error('El runtime de reproducción no es válido.');
   const session=exportSession(exp,datasetHash);
   const single=!session.comparisonActive;
   const wire=[countryCode,exp.base.year,session.modelVersion,session.datasetVersion,session.datasetHash,
@@ -53,13 +55,20 @@ export function scenarioUrl(exp:Experiment,datasetHash:string,countryCode:string
     single?'B':session.primaryId,Number(session.comparisonActive),single?'B':session.comparisonOriginId,
     single?'B':viewedBranch,single?recipeToWire(session.branches.B):recipeToWire(session.branches.A),
     single?null:recipeToWire(session.branches.B)];
-  const url=new URL('/',origin);url.searchParams.set('v',String(SCENARIO_URL_VERSION));url.searchParams.set('s',encode(wire));
+  const url=new URL('/',origin);url.searchParams.set('v',String(SCENARIO_URL_VERSION));url.searchParams.set('r',runtimeId);url.searchParams.set('s',encode(wire));
+  if(url.href.length>MAX_SHARED_URL_LENGTH)throw new Error('Este escenario contiene demasiados cambios para compartirlo mediante un enlace.');
   return url.toString();
 }
-export function readScenarioUrl(url:URL,base:Base,datasetHash:string,countryCode:string):SharedScenario|null {
+export function readScenarioUrl(url:URL,base:Base,datasetHash:string,countryCode:string,runtimeId:string):SharedScenario|null {
   const version=url.searchParams.get('v'),payload=url.searchParams.get('s');
   if(version===null&&payload===null)return null;
-  if(version!==String(SCENARIO_URL_VERSION))throw new Error('Esta versión del enlace no es compatible.');
+  if(url.href.length>MAX_SHARED_URL_LENGTH)throw new Error('El enlace del escenario es demasiado largo.');
+  if(version!==String(SCENARIO_URL_VERSION)&&version!=='1')throw new Error('Esta versión del enlace no es compatible.');
+  if(version===String(SCENARIO_URL_VERSION)){
+    const received=url.searchParams.get('r');
+    if(!received||!RUNTIME_ID_PATTERN.test(received))throw new Error('El enlace no identifica un runtime válido.');
+    if(received!==runtimeId)throw new Error('Este escenario fue creado con una versión del simulador que no está disponible.');
+  }
   const raw=decode(payload||'');
   if(!Array.isArray(raw)||raw.length!==15)throw new Error('El enlace del escenario está incompleto.');
   const [country,year,modelVersion,datasetVersion,hash,seed,shocks,months,forkMonth,primaryId,comparison,comparisonOriginId,viewedBranch,a,b]=raw;
