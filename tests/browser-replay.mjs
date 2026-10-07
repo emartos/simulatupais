@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { replayRuntimeId } from '../scripts/replay-runtime.mjs';
+import { archiveReplay } from '../scripts/replay-archive-lib.mjs';
 import { selectBase, fingerprint } from '../dist/app/core/data.js';
 import { createPrimaryExperiment, advance } from '../dist/app/core/engine.js';
 import { baselinePolicy } from '../dist/app/core/policy.js';
@@ -16,11 +17,16 @@ const original=JSON.parse(readFileSync('dist/build-info.json'));
 const runtimeA=original.replayRuntimeId;
 const archive=`dist/replay/${runtimeA}`;
 assert.equal(JSON.parse(readFileSync(`${archive}/build-info.json`)).replayRuntimeId,runtimeA,'snapshot A registrado');
+const assetsA=JSON.parse(readFileSync(`${archive}/asset-manifest.json`)).assets;
+const videoA=assetsA['media/tutorial-simula-tu-pais.mp4'].path;
+const posterA=assetsA['media/tutorial-simula-tu-pais-poster.webp'].path;
+const logoA=assetsA['assets/political-parties/pp.png'].path;
 const temporary=mkdtempSync(path.join(tmpdir(),'polis-replay-browser-'));
 const buildB=path.join(temporary,'dist');cpSync('dist',buildB,{recursive:true});
 const datasetPath=path.join(buildB,'data/spain.json'),datasetB=JSON.parse(readFileSync(datasetPath));
 datasetB.version=`${datasetB.version}-upgrade-fixture`;
 writeFileSync(datasetPath,JSON.stringify(datasetB));
+writeFileSync(path.join(buildB,'media/tutorial-simula-tu-pais.mp4'),'vídeo distinto del runtime B');
 const runtimeB=replayRuntimeId(readFileSync(path.join(buildB,'app/worker.js')),readFileSync(datasetPath),readFileSync(path.join(buildB,'app/replay-kernel.js')));
 assert.notEqual(runtimeB,runtimeA);
 for(const name of ['app/main.js','app/replay-entry.js']){
@@ -30,14 +36,22 @@ for(const name of ['app/main.js','app/replay-entry.js']){
 }
 writeFileSync(path.join(buildB,'build-info.json'),JSON.stringify({...original,replayRuntimeId:runtimeB,
   hashes:{...original.hashes,'public/data/spain.json':createHash('sha256').update(readFileSync(datasetPath)).digest('hex')}}));
+assert.equal(archiveReplay(buildB,path.join(buildB,'replay')).id,runtimeB);
+const assetsB=JSON.parse(readFileSync(path.join(buildB,'replay',runtimeB,'asset-manifest.json'))).assets;
+assert.notEqual(assetsB['media/tutorial-simula-tu-pais.mp4'].path,videoA,'B conserva otro vídeo');
+assert.equal(assetsB['assets/political-parties/pp.png'].path,logoA,'A y B comparten el logo idéntico');
+assert.equal(assetsB['media/tutorial-simula-tu-pais-poster.webp'].path,posterA,'A y B comparten el poster idéntico');
 const server=spawn(process.execPath,[path.resolve('scripts/serve.mjs')],{cwd:temporary,env:{...process.env,PORT:'0',HOST:'127.0.0.1'},stdio:['ignore','pipe','pipe']});
 let browser,ws;
 async function waitFor(fn,label){const end=Date.now()+20000;while(Date.now()<end){const result=await fn();if(result)return result;await delay(80);}throw new Error(`Tiempo agotado: ${label}`);}
 try{
   const baseUrl=await new Promise((resolve,reject)=>{let output='';server.stdout.on('data',chunk=>{output+=chunk;const match=output.match(/http:\/\/127\.0\.0\.1:\d+/);if(match)resolve(match[0]);});server.on('error',reject);});
-  for(const name of ['index.html','style.css','theme.js','icon.svg','app/main.js','app/worker.js','app/replay-entry.js','data/spain.json','media/tutorial-simula-tu-pais.mp4','assets/political-parties/pp.png','licenses/fflate-LICENSE']){
+  for(const name of ['index.html','style.css','theme.js','asset-manifest.json','app/main.js','app/worker.js','app/replay-entry.js','data/spain.json','licenses/fflate-LICENSE']){
     assert.equal((await fetch(`${baseUrl}/replay/${runtimeA}/${name}`,{method:'HEAD'})).status,200,`${name} autocontenido`);
   }
+  for(const asset of Object.values(assetsA))assert.equal((await fetch(`${baseUrl}${asset.path}`,{method:'HEAD'})).status,200,`${asset.path} publicado`);
+  assert.equal((await fetch(`${baseUrl}/replay/${runtimeA}/media/tutorial-simula-tu-pais.mp4`,{method:'HEAD'})).status,404,'sin vídeo duplicado en A');
+  assert.equal((await fetch(`${baseUrl}/replay/${runtimeA}/assets/political-parties/pp.png`,{method:'HEAD'})).status,404,'sin logo duplicado en A');
   assert.equal((await fetch(`${baseUrl}/replay/${runtimeA}/replay/runtime-manifest.json`)).status,404,'sin archivo de runtimes recursivo');
   const datasetA=JSON.parse(readFileSync(`${archive}/data/spain.json`));
   const base=selectBase(datasetA),policy={...baselinePolicy(base),taxShift:2,transfers:10,publicInvestment:3.3};
@@ -56,10 +70,27 @@ try{
   const click=selector=>evaluate(`document.querySelector(${JSON.stringify(selector)})?.click()`);
   const kpis=()=>evaluate(`JSON.stringify([...document.querySelectorAll('.kpi-main')].map(item=>item.textContent))`);
   await cdp('Page.enable');await cdp('Runtime.enable');await cdp('Network.enable');
+  await navigate(`${baseUrl}/replay/${runtimeB}/`);
+  await waitFor(async()=>evaluate(`!!document.querySelector('[data-action="open-tutorial"]')`),'snapshot B con otro vídeo');
+  await click('[data-action="open-tutorial"]');
+  await waitFor(async()=>evaluate(`!!document.querySelector('#tutorial-video source')`),'tutorial de B');
+  assert.equal(await evaluate(`document.querySelector('#tutorial-video source')?.getAttribute('src')`),assetsB['media/tutorial-simula-tu-pais.mp4'].path,'B carga su propio vídeo');
+  await click('[data-action="close-tutorial"]');
   await navigate(snapshotUrl.href);
   await waitFor(async()=>evaluate(`document.querySelectorAll('.kpi-main').length===6`),'resultado original de A');
   const originalKpis=await kpis();
   assert.equal(await evaluate(`location.pathname`),`/replay/${runtimeA}/`);
+  assert.equal(await evaluate(`document.querySelector('.tutorial-thumbnail img')?.getAttribute('src')`),posterA,'poster inmutable de A');
+  await click('[data-action="open-tutorial"]');
+  await waitFor(async()=>evaluate(`!!document.querySelector('#tutorial-video source')`),'vídeo histórico');
+  assert.equal(await evaluate(`document.querySelector('#tutorial-video source')?.getAttribute('src')`),videoA,'A usa su vídeo content-addressed');
+  assert.equal(await evaluate(`document.querySelector('#tutorial-video')?.getAttribute('poster')`),posterA);
+  assert.equal(await evaluate(`(async()=>{const res=await fetch(${JSON.stringify(videoA)},{method:'HEAD'});return res.status+' '+res.headers.get('content-type');})()`),'200 video/mp4');
+  assert.equal(await evaluate(`(async()=>{const res=await fetch(${JSON.stringify(logoA)});return res.status+' '+res.headers.get('content-type');})()`),'200 image/png');
+  assert.ok(requests.some(url=>url===`${baseUrl}${videoA}`),'Network registra el blob de vídeo de A');
+  assert.ok(requests.some(url=>url===`${baseUrl}${logoA}`),'Network registra el blob del logo de A');
+  assert.ok(!requests.some(url=>url===`${baseUrl}/media/tutorial-simula-tu-pais.mp4`),'A no solicita el vídeo mutable de B');
+  await click('[data-action="close-tutorial"]');
   const requestStart=requests.length;
   await navigate(publicUrl);
   await waitFor(async()=>evaluate(`location.pathname===${JSON.stringify(`/replay/${runtimeA}/`)}&&document.querySelectorAll('.kpi-main').length===6`),'redirección B a A');
@@ -109,7 +140,7 @@ try{
   assert.equal(await evaluate(`location.pathname`),'/','un ID no puede construir otra ruta');
   assert.equal(await evaluate(`!!document.querySelector('.kpi-main')`),false);
   assert.deepEqual(errors,[]);
-  console.log(`PASS replay E2E: A ${runtimeA} → B ${runtimeB} → snapshot A; KPI exactos, límite canónico 8192, variante canónica y entradas inválidas rechazadas.`);
+  console.log(`PASS replay E2E: A ${runtimeA} → B ${runtimeB} → snapshot A; KPI exactos, blobs de A en Network, límite canónico 8192, variante canónica y entradas inválidas rechazadas.`);
 }finally{
   ws?.close();
   if(browser?.exitCode===null){const exited=once(browser,'exit');browser.kill();await exited;}

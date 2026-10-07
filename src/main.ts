@@ -9,6 +9,7 @@ import { renderChart, METRICS } from './ui/chart.js';
 import type { Metric } from './ui/chart.js';
 import { WIZARD_QUESTIONS, guidedAnswerValue, wizardChoiceDetail, wizardPolicy } from './ui/wizard.js';
 import { renderVideoTutorial, renderVideoTutorialDialog } from './ui/video-tutorial.js';
+import { replayAssetUrl } from './ui/replay-assets.js';
 import type { VideoTutorialVariant } from './ui/video-tutorial.js';
 import { ECONOMIC_DECISIONS, decisionValueChanged, economicDecisionChanges, formatDecisionDifference, formatDecisionSummary, formatDecisionValue } from './ui/economic-decisions.js';
 import { calculateChangeOrientation, ECONOMIC_AXIS_METHOD } from './ui/economic-axis-method.js';
@@ -346,7 +347,7 @@ function presetCoverage(preset:PoliticalPreset):string {
 function presetActorLogo(preset:PoliticalPreset):string {
   if(!preset.logo)return '';
   const presentation=preset.logoPresentation,style=presentation?` style="--logo-scale:${presentation.scale??1};${presentation.maxWidth?`--logo-max-width:${presentation.maxWidth}px;`:''}${presentation.maxHeight?`--logo-max-height:${presentation.maxHeight}px;`:''}${presentation.objectPosition?`--logo-object-position:${presentation.objectPosition};`:''}"`:'';
-  return `<span class="preset-logo"${style} aria-hidden="true"><img src="${esc(preset.logo.path)}" alt="" loading="eager"></span>`;
+  return `<span class="preset-logo"${style} aria-hidden="true"><img src="${esc(replayAssetUrl(preset.logo.path))}" alt="" loading="eager"></span>`;
 }
 function presetValue(key:typeof POLITICAL_CONTROL_KEYS[number],preset:PoliticalPreset):string {
   const item=preset.policies[key];return item.status==='UNMAPPED'?'Se conserva el valor actual':valueLabel(key,item.mappingMethod==='STANDARDIZED_CODING'?positionToControlValue(exp.base,key,item.positionScore as Exclude<typeof item.positionScore,null>):item.value!);

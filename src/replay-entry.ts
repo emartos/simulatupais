@@ -12,6 +12,25 @@ function showError(message:string):void {
   const link=document.createElement('a');link.href='/';link.textContent='Volver al simulador actual';
   panel.append(title,text,link);root.append(panel);
 }
+async function loadArchivedAssets():Promise<boolean> {
+  if(!location.pathname.startsWith('/replay/'))return true;
+  const match=location.pathname.match(/^\/replay\/(rt-[a-f0-9]{32})\/$/);
+  if(!match||match[1]!==BUILD_INFO.replayRuntimeId){showError(unavailable);return false;}
+  try{
+    const response=await fetch(new URL('../asset-manifest.json',import.meta.url));
+    if(!response.ok)throw new Error('Manifest de assets ausente');
+    const manifest=await response.json() as {schema?:number;assets?:Record<string,{sha256?:string;path?:string}>};
+    if(manifest.schema!==1||!manifest.assets||typeof manifest.assets!=='object'||Array.isArray(manifest.assets))throw new Error('Manifest de assets inválido');
+    const paths:Record<string,string>=Object.create(null);
+    for(const [name,asset] of Object.entries(manifest.assets)){
+      if(!/^(?:assets\/|media\/|icon\.svg$|share-preview\.(?:png|svg)$)/.test(name)||!/^([a-f0-9]{64})$/.test(asset.sha256||'')||
+        !new RegExp(`^/replay/blobs/${asset.sha256}/asset\\.(?:mp4|webp|png|svg)$`).test(asset.path||''))throw new Error('Referencia de asset inválida');
+      paths[name]=asset.path!;
+    }
+    window.__REPLAY_ASSETS__=Object.freeze(paths);
+    return true;
+  }catch{showError('No se pudieron cargar los assets de esta versión del simulador.');return false;}
+}
 
 async function start():Promise<void> {
   const url=new URL(location.href),params=url.searchParams;
@@ -32,6 +51,7 @@ async function start():Promise<void> {
       }catch{showError(unavailable);return;}
     }
   }
+  if(!await loadArchivedAssets())return;
   await import(new URL('./main.js',import.meta.url).href);
 }
 
