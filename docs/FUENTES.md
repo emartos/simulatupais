@@ -1,6 +1,6 @@
 # Fuentes de la fotografía inicial
 
-Catálogo: `es-reviewed-2026-09-30.1`. Revisado: 2026-09-30.
+Catálogo: `es-reviewed-2026-10-07.1`. Revisado: 2026-10-07.
 
 Enlaces y valores transcritos/normalizados. No son consultas en vivo.
 
@@ -23,16 +23,16 @@ https://ine.es/dyngs/Prensa/CNA2025.html
 | Importaciones | 2024 | 2024 | 526.086 | miles de millones EUR | 2026-09-18 |
 | Importaciones | 2025 | 2025 | 551.386 | miles de millones EUR | 2026-09-18 |
 
-## INE. Estadistica Continua de Poblacion. 1 de enero de 2026
+## INE. Estadistica Continua de Poblacion. 1 de julio de 2026
 
-https://ine.es/dyngs/Prensa/ECP4T25.htm
+https://www.ine.es/dyngs/Prensa/ECP2T26.htm
 
 | Indicador | Ejercicio base | Periodo | Valor | Unidad | Publicado |
 |---|---:|---|---:|---|---|
-| Poblacion al cierre del ejercicio | 2024 | 2025-01-01 | 49128297 | personas | 2026-02-12 |
-| Poblacion al cierre del ejercicio | 2025 | 2026-01-01 | 49570725 | personas | 2026-02-12 |
-| Poblacion al comienzo del ejercicio | 2024 | 2024-01-01 | 48619695 | personas | 2026-02-12 |
-| Poblacion al comienzo del ejercicio | 2025 | 2025-01-01 | 49128297 | personas | 2026-02-12 |
+| Poblacion al cierre del ejercicio | 2024 | 2025-01-01 | 49128297 | personas | 2026-08-06 |
+| Poblacion al cierre del ejercicio | 2025 | 2026-01-01 | 49596376 | personas | 2026-08-06 |
+| Poblacion al comienzo del ejercicio | 2024 | 2024-01-01 | 48619695 | personas | 2026-08-06 |
+| Poblacion al comienzo del ejercicio | 2025 | 2025-01-01 | 49128297 | personas | 2026-08-06 |
 
 ## INE. EPA. Variables de submuestra. Media anual 2024
 
