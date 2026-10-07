@@ -1,11 +1,12 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, statSync } from 'node:fs';
+import { deflateSync, inflateSync } from 'node:zlib';
 import { selectBase, fingerprint } from '../dist/app/core/data.js';
 import { createPrimaryExperiment, advance, configureBranch, compareFrom } from '../dist/app/core/engine.js';
 import { baselinePolicy } from '../dist/app/core/policy.js';
 import { restoreSession } from '../dist/app/core/session.js';
-import { MAX_SHARED_URL_LENGTH, readScenarioUrl, scenarioUrl } from '../dist/app/ui/shared-scenario.js';
+import { MAX_SHARED_URL_LENGTH, canonicalSharedUrl, readScenarioUrl, scenarioUrl } from '../dist/app/ui/shared-scenario.js';
 import { changedDecisionsCount, scenarioMetrics, scenarioSummary, shareText, socialShareUrls } from '../dist/app/ui/scenario-share.js';
 import { EDITORIAL_SCENARIOS, editorialSlug, findEditorialScenario } from '../dist/app/ui/editorial-scenarios.js';
 import { emitGrowthEvent } from '../dist/app/ui/growth-events.js';
@@ -17,14 +18,14 @@ const runtimeId=buildInfo.replayRuntimeId;
 const policy=baselinePolicy(base);
 const urlFor=(exp,view='B')=>scenarioUrl(exp,hash,dataset.countryCode,view,origin,runtimeId);
 const read=url=>readScenarioUrl(new URL(url),base,hash,dataset.countryCode,runtimeId);
-const raw=url=>JSON.parse(Buffer.from(new URL(url).searchParams.get('s'),'base64url').toString());
-const withRaw=(url,wire)=>{const next=new URL(url);next.searchParams.set('s',Buffer.from(JSON.stringify(wire)).toString('base64url'));return next.toString();};
+const raw=url=>JSON.parse(inflateSync(Buffer.from(new URL(url).searchParams.get('s'),'base64url')).toString());
+const withRaw=(url,wire)=>{const next=new URL(url);next.searchParams.set('s',deflateSync(JSON.stringify(wire)).toString('base64url'));return next.toString();};
 
 test('un escenario simple conserva inputs, trayectoria y recarga sin almacenamiento',()=>{
   let exp=createPrimaryExperiment(base,1847,{...policy,taxShift:2,transfers:10,services:19.3},false);
   exp=advance(exp,12);exp=configureBranch(exp,'B',{...exp.b.policy,publicInvestment:3.3});exp=advance(exp,24);
   const url=urlFor(exp),shared=read(url),replayed=restoreSession(shared.session,base);
-  assert.equal(new URL(url).searchParams.get('v'),'2');assert.equal(new URL(url).searchParams.get('r'),runtimeId);assert.equal(shared.viewedBranch,'B');
+  assert.equal(new URL(url).searchParams.get('v'),'2');assert.equal(new URL(url).searchParams.get('r'),runtimeId);assert.equal(new URL(url).searchParams.get('c'),'d');assert.equal(shared.viewedBranch,'B');
   assert.equal(replayed.seed,exp.seed);assert.equal(replayed.shocksEnabled,exp.shocksEnabled);
   assert.deepEqual(replayed.b.initialPolicy,exp.b.initialPolicy);assert.deepEqual(replayed.b.policyChanges,exp.b.policyChanges);
   assert.deepEqual(replayed.b.history,exp.b.history);assert.deepEqual(replayed.b.state,exp.b.state);
@@ -45,7 +46,7 @@ test('la representación es canónica y excluye nombres y metadatos privados',()
   const url=urlFor(exp);
   assert.equal(urlFor(renamed),url);assert.equal(urlFor(shuffled),url);
   assert.ok(!url.includes('persona')&&!JSON.stringify(raw(url)).includes('persona@example.com'));
-  assert.deepEqual([...new URL(url).searchParams.keys()],['v','r','s']);
+  assert.deepEqual([...new URL(url).searchParams.keys()],['v','r','c','s']);
   assert.equal(raw(url)[0],dataset.countryCode);assert.equal(raw(url)[1],base.year);
 });
 test('versiones, tipos, rangos y estado incompleto fallan de forma controlada',()=>{
@@ -61,20 +62,47 @@ test('versiones, tipos, rangos y estado incompleto fallan de forma controlada',(
 });
 test('v2 exige runtime válido y v1 solo se lee como compatibilidad pre-release',()=>{
   const url=urlFor(createPrimaryExperiment(base,1847,policy));
-  const missing=new URL(url);missing.searchParams.delete('r');assert.throws(()=>read(missing),/runtime/);
+  const missing=new URL(url);missing.searchParams.delete('r');assert.throws(()=>read(missing),/incompletos/);
   const malformed=new URL(url);malformed.searchParams.set('r','../otro');assert.throws(()=>read(malformed),/runtime/);
   const other=new URL(url);other.searchParams.set('r',`rt-${'f'.repeat(32)}`);assert.throws(()=>read(other),/no está disponible/);
-  const legacy=new URL(url);legacy.searchParams.set('v','1');legacy.searchParams.delete('r');
+  const legacy=new URL(url);legacy.searchParams.set('v','1');legacy.searchParams.delete('r');legacy.searchParams.delete('c');legacy.searchParams.set('s',Buffer.from(JSON.stringify(raw(url))).toString('base64url'));
   assert.equal(read(legacy).session.seed,1847);
+  legacy.pathname=`/replay/${runtimeId}/`;assert.throws(()=>read(legacy),/v1 sólo/);
   assert.equal(new URL(urlFor(createPrimaryExperiment(base,1847,policy))).searchParams.get('v'),'2');
 });
-test('el límite de 8 KiB admite escenarios ordinarios y nunca trunca los excepcionales',()=>{
+test('v2 exige c=d único, rechaza duplicados y no adivina el codec',()=>{
+  const url=urlFor(createPrimaryExperiment(base,1847,policy));
+  const missing=new URL(url);missing.searchParams.delete('c');assert.throws(()=>read(missing),/duplicados o incompletos/);
+  const unknown=new URL(url);unknown.searchParams.set('c','u');assert.throws(()=>read(unknown),/codec/);
+  for(const key of ['v','r','c','s']){const duplicate=new URL(url);duplicate.searchParams.append(key,duplicate.searchParams.get(key));assert.throws(()=>read(duplicate),/duplicados/);}
+  const corrupt=new URL(url);corrupt.searchParams.set('s','AQID');assert.throws(()=>read(corrupt),/DEFLATE/);
+  const invalidJson=new URL(url);invalidJson.searchParams.set('s',deflateSync('{').toString('base64url'));assert.throws(()=>read(invalidJson),/JSON/);
+});
+test('el límite mide solo la URL pública canónica, también desde /replay/',()=>{
   const exp=advance(createPrimaryExperiment(base,1847,policy),120);
-  assert.ok(urlFor(exp).length<MAX_SHARED_URL_LENGTH);
-  const changes=Array.from({length:180},(_,month)=>({month,policy:{...policy,transfers:month%2?10:20}}));
-  const huge={...exp,b:{...exp.b,policyChanges:changes}};
-  assert.throws(()=>urlFor(huge),/demasiados cambios/);
+  const canonical=new URL(urlFor(exp));canonical.searchParams.set('pad','');
+  const fill=MAX_SHARED_URL_LENGTH-canonical.href.length;canonical.searchParams.set('pad','x'.repeat(fill));
+  assert.equal(canonical.href.length,MAX_SHARED_URL_LENGTH);
+  const internal=new URL(canonical);internal.pathname=`/replay/${runtimeId}/`;
+  assert.ok(internal.href.length>MAX_SHARED_URL_LENGTH);
+  assert.equal(canonicalSharedUrl(internal).href,canonical.href);
+  assert.equal(read(internal).session.seed,1847);
+  const tooLong=new URL(canonical);tooLong.searchParams.set('pad','x'.repeat(fill+1));
+  assert.throws(()=>read(tooLong),/demasiados cambios/);
   assert.equal(MAX_SHARED_URL_LENGTH,8192);
+});
+test('DEFLATE admite más cambios sin truncar; exceso real sigue rechazado',()=>{
+  const exp=advance(createPrimaryExperiment(base,1847,policy),240);
+  const repeated=Array.from({length:239},(_,index)=>({month:index+1,policy:{...policy,transfers:index%2?10:20}}));
+  const compact={...exp,b:{...exp.b,policyChanges:repeated}};
+  const compactUrl=urlFor(compact),oldPayload=Buffer.from(JSON.stringify(raw(compactUrl))).toString('base64url');
+  assert.ok(compactUrl.length<MAX_SHARED_URL_LENGTH);
+  assert.ok(oldPayload.length>MAX_SHARED_URL_LENGTH,'el formato anterior no podía transportar este historial');
+  const varied=Array.from({length:239},(_,index)=>({month:index+1,policy:{...policy,
+    taxShift:Math.sin(index*13),transfers:10+Math.sin(index*11),services:19.2+Math.sin(index)/10,
+    publicInvestment:3+Math.sin(index*7)/10}}));
+  const huge={...exp,b:{...exp.b,policyChanges:varied}};
+  assert.throws(()=>urlFor(huge),/demasiados cambios/);
 });
 test('resumen y enlaces sociales son neutros y deterministas',()=>{
   const exp=advance(createPrimaryExperiment(base,1847,{...policy,taxShift:2,transfers:10}),120);

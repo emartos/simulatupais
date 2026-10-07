@@ -21,13 +21,13 @@ test('la identidad cubre worker, datos y restauración, pero no CSS o UI',()=>{
 test('el archivador es idempotente y rechaza modificar un snapshot existente',()=>{
   const root=mkdtempSync(join(tmpdir(),'polis-replay-test-')),build=join(root,'build'),archive=join(root,'replay');
   try{
-    for(const dir of ['app','data','assets','media'])mkdirSync(join(build,dir),{recursive:true});
+    for(const dir of ['app','data','assets','media','licenses'])mkdirSync(join(build,dir),{recursive:true});
     const worker=Buffer.from('worker fixture'),data=Buffer.from('{"countryCode":"ES","version":"fixture"}'),kernel=Buffer.from('replay fixture');
     const id=replayRuntimeId(worker,data,kernel);
     for(const [name,bytes] of [['app/worker.js',worker],['data/spain.json',data],['app/replay-kernel.js',kernel]])writeFileSync(join(build,name),bytes);
     writeFileSync(join(build,'build-info.json'),JSON.stringify({replayRuntimeId:id,engineVersion:'0.3.0'}));
     for(const name of ['index.html','style.css','theme.js','icon.svg','share-preview.png','share-preview.svg','app/main.js','app/replay-entry.js'])writeFileSync(join(build,name),name);
-    writeFileSync(join(build,'assets','flag.png'),'asset');writeFileSync(join(build,'media','video.mp4'),'media');
+    writeFileSync(join(build,'assets','flag.png'),'asset');writeFileSync(join(build,'media','video.mp4'),'media');writeFileSync(join(build,'licenses','codec-LICENSE'),'MIT');
     const first=archiveReplay(build,archive),second=archiveReplay(build,archive);
     assert.equal(first.created,true);assert.equal(second.created,false);
     assert.equal(first.contentSha256,second.contentSha256);

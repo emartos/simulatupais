@@ -2,6 +2,7 @@ import type { Base, Experiment, Policy, PolicyChange, SessionV2 } from '../core/
 import { MODEL_VERSION } from '../core/model.js';
 import { validatePolicy } from '../core/policy.js';
 import { exportSession, validateSession } from '../core/session.js';
+import { decodeLegacyScenarioPayload, decodeScenarioPayload, encodeScenarioPayload } from './shared-scenario-codec.js';
 
 export const SCENARIO_URL_VERSION=2;
 export const MAX_SHARED_URL_LENGTH=8192;
@@ -35,16 +36,11 @@ function recipeFromWire(raw:unknown):BranchRecipe {
   if(typeof raw[2]!=='number')throw new Error('La URL contiene una fecha no válida.');
   return {initialPolicy:policyFromWire(raw[0]),changes,institutionOriginMonth:raw[2]};
 }
-function encode(value:unknown):string {
-  const bytes=new TextEncoder().encode(JSON.stringify(value));
-  let binary='';for(const byte of bytes)binary+=String.fromCharCode(byte);
-  return btoa(binary).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+export function canonicalSharedUrl(url:URL):URL {
+  const canonical=new URL('/',url.origin);canonical.search=url.search;return canonical;
 }
-function decode(payload:string):unknown {
-  if(!payload||payload.length>MAX_SHARED_URL_LENGTH||!/^[A-Za-z0-9_-]+$/.test(payload))throw new Error('El enlace del escenario no es válido.');
-  const padded=payload.replace(/-/g,'+').replace(/_/g,'/').padEnd(Math.ceil(payload.length/4)*4,'=');
-  try{return JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(Uint8Array.from(atob(padded),char=>char.charCodeAt(0))));}
-  catch{throw new Error('El enlace del escenario no se puede leer.');}
+function validateSharedUrlLength(url:URL):void {
+  if(canonicalSharedUrl(url).href.length>MAX_SHARED_URL_LENGTH)throw new Error('Este escenario contiene demasiados cambios para compartirlo mediante un enlace.');
 }
 export function scenarioUrl(exp:Experiment,datasetHash:string,countryCode:string,viewedBranch:'A'|'B',origin:string,runtimeId:string):string {
   if(!RUNTIME_ID_PATTERN.test(runtimeId))throw new Error('El runtime de reproducción no es válido.');
@@ -55,21 +51,24 @@ export function scenarioUrl(exp:Experiment,datasetHash:string,countryCode:string
     single?'B':session.primaryId,Number(session.comparisonActive),single?'B':session.comparisonOriginId,
     single?'B':viewedBranch,single?recipeToWire(session.branches.B):recipeToWire(session.branches.A),
     single?null:recipeToWire(session.branches.B)];
-  const url=new URL('/',origin);url.searchParams.set('v',String(SCENARIO_URL_VERSION));url.searchParams.set('r',runtimeId);url.searchParams.set('s',encode(wire));
-  if(url.href.length>MAX_SHARED_URL_LENGTH)throw new Error('Este escenario contiene demasiados cambios para compartirlo mediante un enlace.');
+  const url=new URL('/',origin);url.searchParams.set('v',String(SCENARIO_URL_VERSION));url.searchParams.set('r',runtimeId);url.searchParams.set('c','d');url.searchParams.set('s',encodeScenarioPayload(wire));
+  validateSharedUrlLength(url);
   return url.toString();
 }
 export function readScenarioUrl(url:URL,base:Base,datasetHash:string,countryCode:string,runtimeId:string):SharedScenario|null {
   const version=url.searchParams.get('v'),payload=url.searchParams.get('s');
   if(version===null&&payload===null)return null;
-  if(url.href.length>MAX_SHARED_URL_LENGTH)throw new Error('El enlace del escenario es demasiado largo.');
+  validateSharedUrlLength(url);
   if(version!==String(SCENARIO_URL_VERSION)&&version!=='1')throw new Error('Esta versión del enlace no es compatible.');
+  if(version==='1'&&url.pathname.startsWith('/replay/'))throw new Error('Los enlaces v1 sólo se abren con el simulador actual.');
   if(version===String(SCENARIO_URL_VERSION)){
+    if(url.searchParams.getAll('v').length!==1||url.searchParams.getAll('r').length!==1||url.searchParams.getAll('c').length!==1||url.searchParams.getAll('s').length!==1)throw new Error('El enlace contiene parámetros duplicados o incompletos.');
+    if(url.searchParams.get('c')!=='d')throw new Error('El codec del escenario no es compatible.');
     const received=url.searchParams.get('r');
     if(!received||!RUNTIME_ID_PATTERN.test(received))throw new Error('El enlace no identifica un runtime válido.');
     if(received!==runtimeId)throw new Error('Este escenario fue creado con una versión del simulador que no está disponible.');
   }
-  const raw=decode(payload||'');
+  const raw=version==='1'?decodeLegacyScenarioPayload(payload||''):decodeScenarioPayload(payload||'');
   if(!Array.isArray(raw)||raw.length!==15)throw new Error('El enlace del escenario está incompleto.');
   const [country,year,modelVersion,datasetVersion,hash,seed,shocks,months,forkMonth,primaryId,comparison,comparisonOriginId,viewedBranch,a,b]=raw;
   if(country!==countryCode||year!==base.year||modelVersion!==MODEL_VERSION||datasetVersion!==base.datasetVersion||hash!==datasetHash)throw new Error('El enlace utiliza otro país, año o versión de datos y modelo.');

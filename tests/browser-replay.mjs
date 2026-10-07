@@ -10,7 +10,7 @@ import { replayRuntimeId } from '../scripts/replay-runtime.mjs';
 import { selectBase, fingerprint } from '../dist/app/core/data.js';
 import { createPrimaryExperiment, advance } from '../dist/app/core/engine.js';
 import { baselinePolicy } from '../dist/app/core/policy.js';
-import { scenarioUrl } from '../dist/app/ui/shared-scenario.js';
+import { MAX_SHARED_URL_LENGTH, scenarioUrl } from '../dist/app/ui/shared-scenario.js';
 
 const original=JSON.parse(readFileSync('dist/build-info.json'));
 const runtimeA=original.replayRuntimeId;
@@ -35,7 +35,7 @@ let browser,ws;
 async function waitFor(fn,label){const end=Date.now()+20000;while(Date.now()<end){const result=await fn();if(result)return result;await delay(80);}throw new Error(`Tiempo agotado: ${label}`);}
 try{
   const baseUrl=await new Promise((resolve,reject)=>{let output='';server.stdout.on('data',chunk=>{output+=chunk;const match=output.match(/http:\/\/127\.0\.0\.1:\d+/);if(match)resolve(match[0]);});server.on('error',reject);});
-  for(const name of ['index.html','style.css','theme.js','icon.svg','app/main.js','app/worker.js','app/replay-entry.js','data/spain.json','media/tutorial-simula-tu-pais.mp4','assets/political-parties/pp.png']){
+  for(const name of ['index.html','style.css','theme.js','icon.svg','app/main.js','app/worker.js','app/replay-entry.js','data/spain.json','media/tutorial-simula-tu-pais.mp4','assets/political-parties/pp.png','licenses/fflate-LICENSE']){
     assert.equal((await fetch(`${baseUrl}/replay/${runtimeA}/${name}`,{method:'HEAD'})).status,200,`${name} autocontenido`);
   }
   assert.equal((await fetch(`${baseUrl}/replay/${runtimeA}/replay/runtime-manifest.json`)).status,404,'sin archivo de runtimes recursivo');
@@ -65,6 +65,13 @@ try{
   await waitFor(async()=>evaluate(`location.pathname===${JSON.stringify(`/replay/${runtimeA}/`)}&&document.querySelectorAll('.kpi-main').length===6`),'redirección B a A');
   assert.equal(await kpis(),originalKpis,'KPI numéricos idénticos tras upgrade B → replay A');
   assert.ok(!requests.slice(requestStart).some(url=>url===`${baseUrl}/data/spain.json`),'root B no carga su dataset antes de redirigir');
+  const nearLimit=new URL(publicUrl);nearLimit.searchParams.set('pad','');
+  const fill=MAX_SHARED_URL_LENGTH-nearLimit.href.length;nearLimit.searchParams.set('pad','x'.repeat(fill));
+  assert.equal(nearLimit.href.length,MAX_SHARED_URL_LENGTH);
+  await navigate(nearLimit.href);
+  await waitFor(async()=>evaluate(`location.pathname===${JSON.stringify(`/replay/${runtimeA}/`)}&&document.querySelectorAll('.kpi-main').length===6`),'URL límite redirigida');
+  assert.ok(await evaluate(`location.href.length>${MAX_SHARED_URL_LENGTH}`),'la ruta interna supera el límite público');
+  assert.equal(await kpis(),originalKpis,'se acepta el límite canónico dentro de replay');
   await click('[data-action="decisions-toggle"]');
   await waitFor(async()=>evaluate(`!!document.querySelector('[data-policy="services"]')`),'configuración histórica');
   await evaluate(`(()=>{const input=document.querySelector('[data-policy="services"]');input.value='19.4';input.dispatchEvent(new Event('input',{bubbles:true}));input.dispatchEvent(new Event('change',{bubbles:true}));})()`);
@@ -81,19 +88,28 @@ try{
   assert.equal(new URL(variant).pathname,'/','enlace canónico desde snapshot');
   assert.equal(new URL(variant).searchParams.get('r'),runtimeA,'la variante sigue perteneciendo a A');
   assert.equal(new URL(variant).searchParams.get('v'),'2');
+  assert.equal(new URL(variant).searchParams.get('c'),'d');
+  const tooLong=new URL(nearLimit);tooLong.searchParams.set('pad','x'.repeat(fill+1));
+  await navigate(tooLong.href);
+  await waitFor(async()=>evaluate(`document.querySelector('#toast')?.textContent.includes('No se pudo abrir el escenario')`),'URL pública superior al límite');
+  assert.ok((await evaluate(`document.querySelector('#toast')?.textContent`)).includes('demasiados cambios'));
   const unknown=new URL(publicUrl);unknown.searchParams.set('r',`rt-${'f'.repeat(32)}`);
   await navigate(unknown.href);
   await waitFor(async()=>evaluate(`document.querySelector('.boot h1')?.textContent==='No se pudo abrir el escenario'`),'runtime desconocido');
   assert.equal(await evaluate(`document.querySelector('.boot p')?.textContent`),'Este escenario fue creado con una versión del simulador que no está disponible.');
   assert.equal(await evaluate(`document.querySelector('.boot a')?.getAttribute('href')`),'/');
   assert.equal(await evaluate(`!!document.querySelector('.kpi-main')`),false,'no se ejecuta la receta con B');
+  const noCodec=new URL(publicUrl);noCodec.searchParams.delete('c');
+  await navigate(noCodec.href);
+  await waitFor(async()=>evaluate(`document.querySelector('.boot h1')?.textContent==='No se pudo abrir el escenario'`),'codec ausente');
+  assert.equal(await evaluate(`!!document.querySelector('.kpi-main')`),false);
   const traversal=new URL(publicUrl);traversal.searchParams.set('r','../externo');
   await navigate(traversal.href);
   await waitFor(async()=>evaluate(`document.querySelector('.boot h1')?.textContent==='No se pudo abrir el escenario'`),'runtime ID inseguro');
   assert.equal(await evaluate(`location.pathname`),'/','un ID no puede construir otra ruta');
   assert.equal(await evaluate(`!!document.querySelector('.kpi-main')`),false);
   assert.deepEqual(errors,[]);
-  console.log(`PASS replay E2E: A ${runtimeA} → B ${runtimeB} → snapshot A; KPI exactos, variante canónica y runtime desconocido rechazado.`);
+  console.log(`PASS replay E2E: A ${runtimeA} → B ${runtimeB} → snapshot A; KPI exactos, límite canónico 8192, variante canónica y entradas inválidas rechazadas.`);
 }finally{
   ws?.close();
   if(browser?.exitCode===null){const exited=once(browser,'exit');browser.kill();await exited;}

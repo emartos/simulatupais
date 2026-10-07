@@ -5,7 +5,7 @@ import { replayRuntimeId, RUNTIME_ID_PATTERN } from './replay-runtime.mjs';
 
 const SNAPSHOT_FILES=['index.html','style.css','theme.js','icon.svg','share-preview.png','share-preview.svg',
   'build-info.json','app/main.js','app/worker.js','app/replay-entry.js','app/replay-kernel.js','data/spain.json'];
-const SNAPSHOT_DIRS=['assets','media'];
+const SNAPSHOT_DIRS=['assets','media','licenses'];
 
 function filesUnder(root){
   const visit=dir=>readdirSync(dir,{withFileTypes:true}).flatMap(item=>item.isDirectory()?visit(join(dir,item.name)):[relative(root,join(dir,item.name))]);

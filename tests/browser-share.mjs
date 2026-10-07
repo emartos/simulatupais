@@ -50,7 +50,7 @@ async function buildScenario(browser,baseUrl,label){
   }
   await browser.click('[data-action="share-options"]');
   const url=await browser.evaluate(`document.querySelector('#share-url-manual')?.value`);
-  assert.ok(url.includes(`?v=2&r=${runtimeId}&s=`),'URL compartible versionada y ligada al runtime');
+  assert.ok(url.includes(`?v=2&r=${runtimeId}&c=d&s=`),'URL comprimida, versionada y ligada al runtime');
   assert.equal(await browser.evaluate(`document.documentElement.scrollWidth<=innerWidth`),true,`${label} sin overflow`);
   assert.equal(await browser.evaluate(`document.querySelector('#share-card-preview')?.width`),1200,'tarjeta Canvas generada');
   if(label==='mobile'){

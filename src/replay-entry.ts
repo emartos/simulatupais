@@ -16,7 +16,8 @@ function showError(message:string):void {
 async function start():Promise<void> {
   const url=new URL(location.href),params=url.searchParams;
   if(params.has('r')||params.get('v')==='2'){
-    if(params.getAll('v').length!==1||params.get('v')!=='2'||params.getAll('r').length!==1||params.getAll('s').length!==1){showError('El enlace del escenario está incompleto.');return;}
+    if(params.getAll('v').length!==1||params.get('v')!=='2'||params.getAll('r').length!==1||params.getAll('c').length!==1||params.getAll('s').length!==1){showError('El enlace del escenario está incompleto.');return;}
+    if(params.get('c')!=='d'){showError('El codec del escenario no es compatible.');return;}
     const id=params.get('r')!;
     if(!runtimePattern.test(id)){showError(unavailable);return;}
     if(id!==BUILD_INFO.replayRuntimeId){
