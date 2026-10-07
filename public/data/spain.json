@@ -1,8 +1,8 @@
 {
-  "version": "es-reviewed-2026-09-30.1",
-  "country": "Espa\u00f1a",
+  "version": "es-reviewed-2026-10-07.1",
+  "country": "España",
   "countryCode": "ES",
-  "reviewed": "2026-09-30",
+  "reviewed": "2026-10-07",
   "observations": [
     {
       "id": "gdp",
@@ -167,24 +167,24 @@
       "unit": "personas",
       "baseYear": 2024,
       "referencePeriod": "2025-01-01",
-      "source": "https://ine.es/dyngs/Prensa/ECP4T25.htm",
-      "sourceTitle": "INE. Estadistica Continua de Poblacion. 1 de enero de 2026",
-      "published": "2026-02-12",
+      "source": "https://www.ine.es/dyngs/Prensa/ECP2T26.htm",
+      "sourceTitle": "INE. Estadistica Continua de Poblacion. 1 de julio de 2026",
+      "published": "2026-08-06",
       "kind": "source-estimate",
       "note": "Stock a 1 de enero del siguiente ano, frontera de cierre del ejercicio. Se conserva la fecha real; no se etiqueta como media anual."
     },
     {
       "id": "population",
       "label": "Poblacion al cierre del ejercicio",
-      "value": 49570725,
+      "value": 49596376,
       "unit": "personas",
       "baseYear": 2025,
       "referencePeriod": "2026-01-01",
-      "source": "https://ine.es/dyngs/Prensa/ECP4T25.htm",
-      "sourceTitle": "INE. Estadistica Continua de Poblacion. 1 de enero de 2026",
-      "published": "2026-02-12",
+      "source": "https://www.ine.es/dyngs/Prensa/ECP2T26.htm",
+      "sourceTitle": "INE. Estadistica Continua de Poblacion. 1 de julio de 2026",
+      "published": "2026-08-06",
       "kind": "source-estimate",
-      "note": "Stock a 1 de enero del siguiente ano, frontera de cierre del ejercicio. Se conserva la fecha real; no se etiqueta como media anual."
+      "note": "Stock provisional a 1 de enero del siguiente ano, frontera de cierre del ejercicio. Valor revisado en la ECP publicada el 6 de agosto de 2026; se conserva la fecha real y no se etiqueta como media anual."
     },
     {
       "id": "populationPrevious",
@@ -193,9 +193,9 @@
       "unit": "personas",
       "baseYear": 2024,
       "referencePeriod": "2024-01-01",
-      "source": "https://ine.es/dyngs/Prensa/ECP4T25.htm",
-      "sourceTitle": "INE. Estadistica Continua de Poblacion. 1 de enero de 2026",
-      "published": "2026-02-12",
+      "source": "https://www.ine.es/dyngs/Prensa/ECP2T26.htm",
+      "sourceTitle": "INE. Estadistica Continua de Poblacion. 1 de julio de 2026",
+      "published": "2026-08-06",
       "kind": "source-estimate",
       "note": "Se usa para derivar la variacion anual de poblacion, no para afirmar una proyeccion demografica oficial."
     },
@@ -206,9 +206,9 @@
       "unit": "personas",
       "baseYear": 2025,
       "referencePeriod": "2025-01-01",
-      "source": "https://ine.es/dyngs/Prensa/ECP4T25.htm",
-      "sourceTitle": "INE. Estadistica Continua de Poblacion. 1 de enero de 2026",
-      "published": "2026-02-12",
+      "source": "https://www.ine.es/dyngs/Prensa/ECP2T26.htm",
+      "sourceTitle": "INE. Estadistica Continua de Poblacion. 1 de julio de 2026",
+      "published": "2026-08-06",
       "kind": "source-estimate",
       "note": "Se usa para derivar la variacion anual de poblacion, no para afirmar una proyeccion demografica oficial."
     },
