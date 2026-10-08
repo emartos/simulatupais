@@ -120,6 +120,37 @@ function writeNewBlobs(archiveRoot,newBlobs){
     writeFileSync(filename,bytes,{flag:'wx'});
   }
 }
+export function prepareDeployableAssets(sourceRoot,buildRoot,archiveRoot){
+  mkdirSync(archiveRoot,{recursive:true});
+  const prepared=prepareAssets(sourceRoot,archiveRoot);
+  writeNewBlobs(archiveRoot,prepared.newBlobs);
+  writeFileSync(join(buildRoot,'asset-manifest.json'),`${JSON.stringify(prepared.manifest,null,2)}\n`);
+  const index=join(buildRoot,'index.html');
+  let html=readFileSync(index,'utf8');
+  for(const name of ASSET_FILES){
+    const path=prepared.manifest.assets[name].path;
+    html=html.replaceAll(`./${name}`,path);
+    html=html.replaceAll(`https://simulatupais.org/${name}`,`https://simulatupais.org${path}`);
+  }
+  writeFileSync(index,html);
+  for(const name of [...ASSET_FILES,...ASSET_DIRS])rmSync(join(buildRoot,name),{recursive:true,force:true});
+  verifyDeployableAssets(buildRoot,archiveRoot);
+  return prepared.manifest;
+}
+export function verifyDeployableAssets(buildRoot,archiveRoot){
+  const manifest=validateAssetManifest(buildRoot);
+  if(Object.keys(manifest.assets).length===0)throw new Error('El build no contiene assets gestionados.');
+  for(const name of Object.keys(manifest.assets)){
+    if(existsSync(join(buildRoot,name)))throw new Error(`Asset duplicado en el build: ${name}`);
+    const asset=manifest.assets[name],stored=blobOnDisk(archiveRoot,asset.sha256);
+    if(!stored||stored.path!==asset.path)throw new Error(`Falta el blob ${asset.sha256} del build.`);
+  }
+  const html=readFileSync(join(buildRoot,'index.html'),'utf8');
+  for(const name of ['icon.svg','share-preview.png']){
+    if(!html.includes(manifest.assets[name].path)||html.includes(`./${name}`)||html.includes(`https://simulatupais.org/${name}`))throw new Error(`Referencia estática sin resolver: ${name}`);
+  }
+  return manifest;
+}
 function runtimeIdFromBuild(buildRoot){
   const info=JSON.parse(readFileSync(join(buildRoot,'build-info.json'),'utf8'));
   const id=info.replayRuntimeId;
@@ -143,6 +174,7 @@ function readAndVerifyArchive(archiveRoot){
 
 export function verifyArchivedRuntime(buildRoot,archiveRoot){
   const {id}=runtimeIdFromBuild(buildRoot);
+  verifyDeployableAssets(buildRoot,join(buildRoot,'replay'));
   const manifest=readAndVerifyArchive(archiveRoot),entry=manifest.runtimes[id];
   if(!entry)throw new Error(`Falta el snapshot archivado de ${id}.`);
   return {id,contentSha256:entry.contentSha256};
@@ -150,21 +182,34 @@ export function verifyArchivedRuntime(buildRoot,archiveRoot){
 
 export function archiveReplay(buildRoot,archiveRoot){
   const {id,info}=runtimeIdFromBuild(buildRoot);
+  const sourceArchive=join(buildRoot,'replay');
+  const assetManifest=verifyDeployableAssets(buildRoot,sourceArchive);
   mkdirSync(archiveRoot,{recursive:true});
   const manifestPath=join(archiveRoot,'runtime-manifest.json');
   const manifest=existsSync(manifestPath)?readAndVerifyArchive(archiveRoot):{schema:1,runtimes:{}};
   const target=join(archiveRoot,id),temporary=join(archiveRoot,`.pending-${id}`);
   if(existsSync(temporary))throw new Error('Hay un archivado de replay incompleto.');
   try{
-    const prepared=prepareAssets(buildRoot,archiveRoot);
-    copySnapshot(buildRoot,temporary,prepared.manifest);
-    const candidateDigest=digestRuntimeSnapshot(temporary,archiveRoot,prepared.bytesByHash),existing=manifest.runtimes[id];
+    const stagedBytes=new Map();
+    for(const asset of Object.values(assetManifest.assets)){
+      const source=blobOnDisk(sourceArchive,asset.sha256);
+      if(!source||source.path!==asset.path)throw new Error(`Falta el blob ${asset.sha256} del build.`);
+      stagedBytes.set(asset.sha256,readFileSync(source.filename));
+    }
+    copySnapshot(buildRoot,temporary,assetManifest);
+    const candidateDigest=digestRuntimeSnapshot(temporary,archiveRoot,stagedBytes),existing=manifest.runtimes[id];
     if(existsSync(target)){
       if(!existing||existing.contentSha256!==digestRuntimeSnapshot(target,archiveRoot)||candidateDigest!==existing.contentSha256)throw new Error(`El runtime ${id} ya existe con contenido diferente. No se sobrescribe.`);
       return {id,contentSha256:candidateDigest,created:false};
     }
     if(existing)throw new Error(`El manifest menciona ${id}, pero falta su snapshot.`);
-    writeNewBlobs(archiveRoot,prepared.newBlobs);
+    for(const asset of Object.values(assetManifest.assets)){
+      const stored=blobOnDisk(archiveRoot,asset.sha256);
+      if(stored){if(stored.path!==asset.path)throw new Error(`El blob ${asset.sha256} ya existe bajo otra ruta.`);continue;}
+      const destination=join(archiveRoot,asset.path.slice('/replay/'.length));
+      mkdirSync(join(destination,'..'),{recursive:true});
+      writeFileSync(destination,stagedBytes.get(asset.sha256),{flag:'wx'});
+    }
     if(digestRuntimeSnapshot(temporary,archiveRoot)!==candidateDigest)throw new Error('Los blobs archivados no coinciden con el snapshot.');
     const datasetBytes=readFileSync(join(buildRoot,'data/spain.json'));
     const dataset=JSON.parse(datasetBytes.toString('utf8'));

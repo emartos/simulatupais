@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { build, transform } from 'esbuild';
 import { projectConfig } from './project-config.mjs';
 import { replayRuntimeId } from './replay-runtime.mjs';
+import { prepareDeployableAssets } from './replay-archive-lib.mjs';
 const require = createRequire(import.meta.url);
 let compiler;
 try { compiler = require.resolve('typescript/bin/tsc'); }
@@ -62,4 +63,5 @@ rmSync(bundledApp, { recursive: true, force: true });
 const files = ['public/data/spain.json', 'src/core/model.ts'];
 const hashes = Object.fromEntries(files.map(f => [f, createHash('sha256').update(readFileSync(f)).digest('hex')]));
 writeFileSync('dist/build-info.json', JSON.stringify({...buildInfo, hashes}, null, 2));
+prepareDeployableAssets('public','dist','dist/replay');
 console.log('Compilacion completada: dist/. No hay dependencias de ejecucion externas.');

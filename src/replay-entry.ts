@@ -12,12 +12,14 @@ function showError(message:string):void {
   const link=document.createElement('a');link.href='/';link.textContent='Volver al simulador actual';
   panel.append(title,text,link);root.append(panel);
 }
-async function loadArchivedAssets():Promise<boolean> {
-  if(!location.pathname.startsWith('/replay/'))return true;
-  const match=location.pathname.match(/^\/replay\/(rt-[a-f0-9]{32})\/$/);
-  if(!match||match[1]!==BUILD_INFO.replayRuntimeId){showError(unavailable);return false;}
+async function loadAssets():Promise<boolean> {
+  const archived=location.pathname.startsWith('/replay/');
+  if(archived){
+    const match=location.pathname.match(/^\/replay\/(rt-[a-f0-9]{32})\/$/);
+    if(!match||match[1]!==BUILD_INFO.replayRuntimeId){showError(unavailable);return false;}
+  }
   try{
-    const response=await fetch(new URL('../asset-manifest.json',import.meta.url));
+    const response=await fetch(archived?new URL('../asset-manifest.json',import.meta.url):'/asset-manifest.json');
     if(!response.ok)throw new Error('Manifest de assets ausente');
     const manifest=await response.json() as {schema?:number;assets?:Record<string,{sha256?:string;path?:string}>};
     if(manifest.schema!==1||!manifest.assets||typeof manifest.assets!=='object'||Array.isArray(manifest.assets))throw new Error('Manifest de assets inválido');
@@ -51,7 +53,7 @@ async function start():Promise<void> {
       }catch{showError(unavailable);return;}
     }
   }
-  if(!await loadArchivedAssets())return;
+  if(!await loadAssets())return;
   await import(new URL('./main.js',import.meta.url).href);
 }
 

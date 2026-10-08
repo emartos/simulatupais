@@ -142,5 +142,8 @@ test('la capa de eventos solo publica propiedades permitidas y no hace red',()=>
 test('metadatos sociales y preview PNG están incluidos en la compilación',()=>{
   const html=readFileSync(new URL('../dist/index.html',import.meta.url),'utf8');
   for(const name of ['og:title','og:description','og:image','og:url','twitter:card'])assert.ok(html.includes(name),name);
-  assert.ok(statSync(new URL('../dist/share-preview.png',import.meta.url)).size>0);
+  const manifest=JSON.parse(readFileSync(new URL('../dist/asset-manifest.json',import.meta.url),'utf8'));
+  const preview=manifest.assets['share-preview.png'].path;
+  assert.ok(html.includes(`https://simulatupais.org${preview}`));
+  assert.ok(statSync(new URL(`../dist${preview}`,import.meta.url)).size>0);
 });

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import { existsSync, mkdtempSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { archiveReplay, verifyArchivedRuntime } from '../scripts/replay-archive-lib.mjs';
+import { createHash } from 'node:crypto';
+import { archiveReplay, prepareDeployableAssets, verifyArchivedRuntime, verifyDeployableAssets } from '../scripts/replay-archive-lib.mjs';
 import { replayRuntimeId } from '../scripts/replay-runtime.mjs';
 
 test('la identidad cubre worker, datos y restauración, pero no CSS o UI',()=>{
@@ -18,6 +19,28 @@ test('la identidad cubre worker, datos y restauración, pero no CSS o UI',()=>{
   assert.equal(current.replayRuntimeId,replayRuntimeId(readFileSync('dist/app/worker.js'),readFileSync('dist/data/spain.json'),readFileSync('dist/app/replay-kernel.js')));
 });
 
+test('dist contiene una sola copia física de cada asset gestionado por root y replay',()=>{
+  const manifest=verifyDeployableAssets('dist','dist/replay');
+  assert.equal(Object.keys(manifest.assets).length,16);
+  const wanted=new Set(Object.values(manifest.assets).map(asset=>asset.sha256));
+  const found=new Map([...wanted].map(hash=>[hash,[]]));
+  const visit=dir=>{
+    for(const item of readdirSync(dir,{withFileTypes:true})){
+      const name=join(dir,item.name);
+      if(item.isDirectory())visit(name);
+      else if(item.isFile()){
+        const hash=createHash('sha256').update(readFileSync(name)).digest('hex');
+        if(wanted.has(hash))found.get(hash).push(name);
+      }
+    }
+  };
+  visit('dist');
+  for(const [hash,files] of found){
+    const asset=Object.values(manifest.assets).find(item=>item.sha256===hash);
+    assert.deepEqual(files,[join('dist',asset.path.slice(1))],`una copia física del asset ${hash}`);
+  }
+});
+
 test('el archivador es idempotente y rechaza modificar un snapshot existente',()=>{
   const root=mkdtempSync(join(tmpdir(),'polis-replay-test-')),build=join(root,'build'),archive=join(root,'replay');
   try{
@@ -27,7 +50,10 @@ test('el archivador es idempotente y rechaza modificar un snapshot existente',()
     for(const [name,bytes] of [['app/worker.js',worker],['data/spain.json',data],['app/replay-kernel.js',kernel]])writeFileSync(join(build,name),bytes);
     writeFileSync(join(build,'build-info.json'),JSON.stringify({replayRuntimeId:id,engineVersion:'0.3.0'}));
     for(const name of ['index.html','style.css','theme.js','icon.svg','share-preview.png','share-preview.svg','app/main.js','app/replay-entry.js'])writeFileSync(join(build,name),name);
+    writeFileSync(join(build,'index.html'),'<link rel="icon" href="./icon.svg"><meta property="og:image" content="https://simulatupais.org/share-preview.png">');
     writeFileSync(join(build,'assets','flag.png'),'asset');writeFileSync(join(build,'media','video.mp4'),'media');writeFileSync(join(build,'licenses','codec-LICENSE'),'MIT');
+    prepareDeployableAssets(build,build,join(build,'replay'));
+    assert.equal(existsSync(join(build,'media','video.mp4')),false,'el root tampoco duplica el vídeo');
     const first=archiveReplay(build,archive),second=archiveReplay(build,archive);
     assert.equal(first.created,true);assert.equal(second.created,false);
     assert.equal(first.contentSha256,second.contentSha256);
@@ -65,7 +91,11 @@ test('dos runtimes comparten blobs idénticos, pero un vídeo cambiado conserva 
   const root=mkdtempSync(join(tmpdir(),'polis-replay-blobs-')),archive=join(root,'replay');
   try{
     const a=fixtureBuild(root,'A','video X'),b=fixtureBuild(root,'B','video X'),c=fixtureBuild(root,'C','video Y');
-    for(const {build} of [a,b,c])assert.equal(archiveReplay(build,archive).created,true);
+    for(const {build} of [a,b,c]){
+      prepareDeployableAssets(build,build,join(build,'replay'));
+      assert.equal(archiveReplay(build,archive).created,true);
+      assert.equal(existsSync(join(build,'media','video.mp4')),false);
+    }
     const manifest=id=>JSON.parse(readFileSync(join(archive,id,'asset-manifest.json'))).assets;
     const assetA=manifest(a.id),assetB=manifest(b.id),assetC=manifest(c.id);
     assert.equal(assetA['media/video.mp4'].path,assetB['media/video.mp4'].path,'A y B reutilizan el mismo vídeo');
@@ -94,5 +124,20 @@ test('dos runtimes comparten blobs idénticos, pero un vídeo cambiado conserva 
     assert.throws(()=>verifyArchivedRuntime(a.build,archive),/ha cambiado/,'hasta un cambio semánticamente neutro del manifest altera el digest');
     writeFileSync(assetManifest,originalManifest.replace('"schema": 1','"schema": 2'));
     assert.throws(()=>verifyArchivedRuntime(a.build,archive),/Manifest de assets/);
+  }finally{rmSync(root,{recursive:true,force:true});}
+});
+
+test('el manifest del root exige blobs íntegros y no permite copias físicas',()=>{
+  const root=mkdtempSync(join(tmpdir(),'polis-root-assets-')),archive=join(root,'replay');
+  try{
+    const {build}=fixtureBuild(root,'root','video X');
+    const manifest=prepareDeployableAssets(build,build,archive);
+    assert.equal(Object.keys(manifest.assets).length,5);
+    assert.equal(Object.keys(verifyDeployableAssets(build,archive).assets).length,5);
+    const blob=join(archive,manifest.assets['media/video.mp4'].path.slice('/replay/'.length));
+    writeFileSync(blob,'alterado');
+    assert.throws(()=>verifyDeployableAssets(build,archive),/SHA-256/);
+    rmSync(blob);
+    assert.throws(()=>verifyDeployableAssets(build,archive),/blob inválido|Falta el blob/i);
   }finally{rmSync(root,{recursive:true,force:true});}
 });

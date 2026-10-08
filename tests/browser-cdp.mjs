@@ -11,19 +11,27 @@ import { wizardPolicy } from '../dist/app/ui/wizard.js';
 
 const dir=await mkdtemp(path.join(os.tmpdir(),'polis-browser-'));
 const buildInfo=JSON.parse(await readFile('dist/build-info.json','utf8'));
-assert.equal((await stat(`public${TUTORIAL_VIDEO_URL}`)).size,(await stat(`dist${TUTORIAL_VIDEO_URL}`)).size,'el build publica el MP4 sin modificarlo');
-assert.ok((await stat(`dist${TUTORIAL_POSTER_URL}`)).size>0,'el poster está publicado');
+const assetManifest=JSON.parse(await readFile('dist/asset-manifest.json','utf8')).assets;
+const videoBlob=assetManifest[TUTORIAL_VIDEO_URL.slice(1)].path;
+const posterBlob=assetManifest[TUTORIAL_POSTER_URL.slice(1)].path;
+const logoBlob=assetManifest['assets/political-parties/pp.png'].path;
+assert.equal((await stat(`public${TUTORIAL_VIDEO_URL}`)).size,(await stat(`dist${videoBlob}`)).size,'el build publica el MP4 sin modificarlo');
+assert.ok((await stat(`dist${posterBlob}`)).size>0,'el poster está publicado');
+await assert.rejects(stat(`dist${TUTORIAL_VIDEO_URL}`),'no hay una segunda copia del vídeo en dist');
 const port=Number(process.env.PORT||5177),baseUrl=process.env.BASE_URL||`http://127.0.0.1:${port}`;
 const server=process.env.BASE_URL?null:spawn(process.execPath,['scripts/serve.mjs'],{cwd:path.resolve('.'),env:{...process.env,PORT:String(port),HOST:'127.0.0.1'},stdio:'ignore'});
 let browser,baselineMarker;
 try {
  await waitFor(async()=>{try{return (await fetch(`${baseUrl}/`)).ok;}catch{return false;}});
- for(const [asset,type] of [['/assets/political-parties/pp.png','image/png'],[TUTORIAL_POSTER_URL,'image/webp'],[TUTORIAL_VIDEO_URL,'video/mp4']]){
+ for(const [asset,type] of [[logoBlob,'image/png'],[posterBlob,'image/webp'],[videoBlob,'video/mp4'],[assetManifest['icon.svg'].path,'image/svg+xml'],[assetManifest['share-preview.png'].path,'image/png']]){
   const response=await fetch(`${baseUrl}${asset}`,{method:'HEAD'});
   assert.equal(response.status,200,`${asset} publicado`);
   assert.equal(response.headers.get('content-type'),type,`${asset} tiene MIME correcto`);
   assert.equal(response.headers.get('x-content-type-options'),'nosniff',`${asset} conserva nosniff`);
  }
+ for(const asset of [TUTORIAL_VIDEO_URL,TUTORIAL_POSTER_URL,'/assets/political-parties/pp.png'])assert.equal((await fetch(`${baseUrl}${asset}`,{method:'HEAD'})).status,404,`${asset} no se publica duplicado`);
+ const rootHtml=await (await fetch(`${baseUrl}/`)).text();
+ assert.ok(rootHtml.includes(assetManifest['icon.svg'].path)&&rootHtml.includes(assetManifest['share-preview.png'].path),'favicon y Open Graph apuntan a blobs');
  const debugPort=9222+(process.pid%1000);
  browser=spawn(process.env.CHROMIUM||'/snap/bin/chromium',['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',`--remote-debugging-port=${debugPort}`,`--user-data-dir=${dir}`,'about:blank'],{stdio:'inherit'});
  browser.on('error',error=>console.error(error));
@@ -32,7 +40,7 @@ try {
  const ws=new WebSocket(target.webSocketDebuggerUrl); await once(ws,'open');
  let id=0;const pending=new Map(),pageErrors=[],mediaRequests=[];
  ws.addEventListener('message',event=>{const m=JSON.parse(event.data);if(m.method==='Runtime.exceptionThrown')pageErrors.push(m.params.exceptionDetails?.text||'Error de página');if(m.method==='Log.entryAdded'&&m.params.entry.level==='error')pageErrors.push(m.params.entry.text);});
- ws.addEventListener('message',event=>{const m=JSON.parse(event.data);if(m.method==='Network.requestWillBeSent'&&m.params.request.url.includes(TUTORIAL_VIDEO_URL))mediaRequests.push(m.params.request.url);});
+ ws.addEventListener('message',event=>{const m=JSON.parse(event.data);if(m.method==='Network.requestWillBeSent'&&m.params.request.url.includes('asset.mp4'))mediaRequests.push(m.params.request.url);});
  ws.addEventListener('message',event=>{const m=JSON.parse(event.data);if(m.id&&pending.has(m.id)){const p=pending.get(m.id);pending.delete(m.id);m.error?p.reject(new Error(m.error.message)):p.resolve(m.result);} });
  const cdp=(method,params={})=>new Promise((resolve,reject)=>{const callId=++id;pending.set(callId,{resolve,reject});ws.send(JSON.stringify({id:callId,method,params}));});
  const evaluate=async(expression)=>{const r=await cdp('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw new Error(r.exceptionDetails.text);return r.result?.value;};
@@ -52,7 +60,7 @@ try {
  const waitForApp=()=>waitFor(async()=>evaluate(`!!document.querySelector('[data-action="step"]')`));
  const checkTutorial=async()=>{
   const state=await evaluate(`(()=>{const d=document.querySelector('.tutorial-modal'),v=d?.querySelector('video'),source=v?.querySelector('source');return {title:d?.querySelector('#tutorial-title')?.textContent,dialog:d?.getAttribute('role'),labelledby:d?.getAttribute('aria-labelledby'),video:source?.getAttribute('src'),poster:v?.getAttribute('poster'),preload:v?.getAttribute('preload'),autoplay:v?.autoplay,loop:v?.loop,paused:v?.paused,playsinline:v?.hasAttribute('playsinline'),focus:document.activeElement?.getAttribute('data-action')}})()`);
-  assert.deepEqual(state,{title:'Cómo funciona Simula tu país',dialog:'dialog',labelledby:'tutorial-title',video:TUTORIAL_VIDEO_URL,poster:TUTORIAL_POSTER_URL,preload:'none',autoplay:false,loop:false,paused:true,playsinline:true,focus:'close-tutorial'},'el mismo diálogo presenta el MP4 con controles y sin reproducción automática');
+  assert.deepEqual(state,{title:'Cómo funciona Simula tu país',dialog:'dialog',labelledby:'tutorial-title',video:videoBlob,poster:posterBlob,preload:'none',autoplay:false,loop:false,paused:true,playsinline:true,focus:'close-tutorial'},'el mismo diálogo presenta el MP4 con controles y sin reproducción automática');
   assert.equal(mediaRequests.length,0,'abrir el tutorial no descarga el MP4');
  };
  await cdp('Page.enable');await cdp('Runtime.enable');await cdp('Log.enable');await cdp('Network.enable');const browserVersion=await cdp('Browser.getVersion');await cdp('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'light'}]});await cdp('Page.navigate',{url:`${baseUrl}/`});
@@ -88,7 +96,7 @@ try {
   await click('[data-action="wizard-start"]');await waitFor(async()=>evaluate(`!!document.querySelector('[data-action="wizard-confirm-draft"]')`));assert.equal(await evaluate(`!!document.querySelector('#sim-date')`),false,'el cuestionario genera un borrador revisable sin ejecutar');await click('[data-action="wizard-confirm-draft"]');await waitForApp();
   assert.equal(await evaluate(`(()=>{const h=document.querySelector('.simulation-header'),i=h?.querySelector('.simulation-intro'),t=i?.querySelector('.tutorial-feature');return !!t&&!!t.closest('.welcome-intro .intro-copy')&&h.querySelector('.simulation-controls')!==null&&h.nextElementSibling?.classList.contains('lab-layout')&&!document.querySelector('.tutorial-card')})()`),true,'miniatura y texto integrados en la columna izquierda del hero, sin tarjeta autónoma');
   assert.equal(await evaluate(`document.querySelector('.tutorial-feature-title')?.textContent.trim()`),'Ver cómo funciona · 2 min','la home muestra la acción textual del tutorial');
-  assert.equal(await evaluate(`document.querySelector('.tutorial-thumbnail img')?.getAttribute('src')`),TUTORIAL_POSTER_URL,'la miniatura utiliza el poster del reproductor');
+  assert.equal(await evaluate(`document.querySelector('.tutorial-thumbnail img')?.getAttribute('src')`),posterBlob,'la miniatura utiliza el poster del reproductor');
   assert.equal(await evaluate(`(()=>{const t=document.querySelector('.tutorial-thumbnail').getBoundingClientRect(),c=document.querySelector('.tutorial-feature-copy').getBoundingClientRect(),h=document.querySelector('.simulation-intro').getBoundingClientRect();return t.left>=h.left&&t.right<c.left&&c.right<=h.right+1})()`),true,'la miniatura está a la izquierda del texto dentro de la columna de introducción');
   assert.equal(mediaRequests.length,0,'la home no solicita el MP4 antes de abrir el tutorial');
   await screenshot('tutorial-home-reference-1280');await screenshotClip('.simulation-header','tutorial-home-hero-1280');
@@ -382,6 +390,9 @@ try {
  assert.deepEqual(auditSession.branches.A.changes.at(-1).policy,auditGuided,'el drawer aplica exactamente la política del wizard principal');
  assert.equal(auditSession.branches.B.initialPolicy.services,19.2,'la rama original conserva su configuración previa');
  await click('[data-action="close-settings"]');
+ assert.equal(await evaluate(`(async()=>{const r=await fetch(${JSON.stringify(videoBlob)},{method:'HEAD'});return r.status})()`),200,'el vídeo del root se sirve desde el blob');
+ assert.ok(mediaRequests.includes(`${baseUrl}${videoBlob}`),'Network observa el vídeo content-addressed del root');
+ assert.ok(!mediaRequests.includes(`${baseUrl}${TUTORIAL_VIDEO_URL}`),'Network no observa el path mutable del vídeo');
   assert.deepEqual(pageErrors,[],'el flujo de presets no genera errores de consola/página');console.log('PASS E2E presets: opciones explicadas, catálogo oficial, borrador, acceso Configurar tras 36 meses, bifurcación, máximo dos ramas, exportación e importación de provenance.');
  console.log('PASS Chromium real: HTTP, Web Worker, navegación inicial, preset, layout 360/390/1280, cuestionario, comparación, cambio, avance, IndexedDB y export/import.');
  console.log(`Navegador: ${browserVersion.product}; errores de consola/página: ${JSON.stringify(pageErrors)}`);
