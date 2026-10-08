@@ -11,19 +11,27 @@ import { wizardPolicy } from '../dist/app/ui/wizard.js';
 
 const dir=await mkdtemp(path.join(os.tmpdir(),'polis-browser-'));
 const buildInfo=JSON.parse(await readFile('dist/build-info.json','utf8'));
-assert.equal((await stat(`public${TUTORIAL_VIDEO_URL}`)).size,(await stat(`dist${TUTORIAL_VIDEO_URL}`)).size,'el build publica el MP4 sin modificarlo');
-assert.ok((await stat(`dist${TUTORIAL_POSTER_URL}`)).size>0,'el poster está publicado');
+const assetManifest=JSON.parse(await readFile('dist/asset-manifest.json','utf8')).assets;
+const videoBlob=assetManifest[TUTORIAL_VIDEO_URL.slice(1)].path;
+const posterBlob=assetManifest[TUTORIAL_POSTER_URL.slice(1)].path;
+const logoBlob=assetManifest['assets/political-parties/pp.png'].path;
+assert.equal((await stat(`public${TUTORIAL_VIDEO_URL}`)).size,(await stat(`dist${videoBlob}`)).size,'el build publica el MP4 sin modificarlo');
+assert.ok((await stat(`dist${posterBlob}`)).size>0,'el poster está publicado');
+await assert.rejects(stat(`dist${TUTORIAL_VIDEO_URL}`),'no hay una segunda copia del vídeo en dist');
 const port=Number(process.env.PORT||5177),baseUrl=process.env.BASE_URL||`http://127.0.0.1:${port}`;
 const server=process.env.BASE_URL?null:spawn(process.execPath,['scripts/serve.mjs'],{cwd:path.resolve('.'),env:{...process.env,PORT:String(port),HOST:'127.0.0.1'},stdio:'ignore'});
 let browser,baselineMarker;
 try {
  await waitFor(async()=>{try{return (await fetch(`${baseUrl}/`)).ok;}catch{return false;}});
- for(const [asset,type] of [['/assets/political-parties/pp.png','image/png'],[TUTORIAL_POSTER_URL,'image/webp'],[TUTORIAL_VIDEO_URL,'video/mp4']]){
+ for(const [asset,type] of [[logoBlob,'image/png'],[posterBlob,'image/webp'],[videoBlob,'video/mp4'],[assetManifest['icon.svg'].path,'image/svg+xml'],[assetManifest['share-preview.png'].path,'image/png']]){
   const response=await fetch(`${baseUrl}${asset}`,{method:'HEAD'});
   assert.equal(response.status,200,`${asset} publicado`);
   assert.equal(response.headers.get('content-type'),type,`${asset} tiene MIME correcto`);
   assert.equal(response.headers.get('x-content-type-options'),'nosniff',`${asset} conserva nosniff`);
  }
+ for(const asset of [TUTORIAL_VIDEO_URL,TUTORIAL_POSTER_URL,'/assets/political-parties/pp.png'])assert.equal((await fetch(`${baseUrl}${asset}`,{method:'HEAD'})).status,404,`${asset} no se publica duplicado`);
+ const rootHtml=await (await fetch(`${baseUrl}/`)).text();
+ assert.ok(rootHtml.includes(assetManifest['icon.svg'].path)&&rootHtml.includes(assetManifest['share-preview.png'].path),'favicon y Open Graph apuntan a blobs');
  const debugPort=9222+(process.pid%1000);
  browser=spawn(process.env.CHROMIUM||'/snap/bin/chromium',['--headless=new','--no-sandbox','--disable-gpu','--disable-dev-shm-usage',`--remote-debugging-port=${debugPort}`,`--user-data-dir=${dir}`,'about:blank'],{stdio:'inherit'});
  browser.on('error',error=>console.error(error));
@@ -32,7 +40,7 @@ try {
  const ws=new WebSocket(target.webSocketDebuggerUrl); await once(ws,'open');
  let id=0;const pending=new Map(),pageErrors=[],mediaRequests=[];
  ws.addEventListener('message',event=>{const m=JSON.parse(event.data);if(m.method==='Runtime.exceptionThrown')pageErrors.push(m.params.exceptionDetails?.text||'Error de página');if(m.method==='Log.entryAdded'&&m.params.entry.level==='error')pageErrors.push(m.params.entry.text);});
- ws.addEventListener('message',event=>{const m=JSON.parse(event.data);if(m.method==='Network.requestWillBeSent'&&m.params.request.url.includes(TUTORIAL_VIDEO_URL))mediaRequests.push(m.params.request.url);});
+ ws.addEventListener('message',event=>{const m=JSON.parse(event.data);if(m.method==='Network.requestWillBeSent'&&m.params.request.url.includes('asset.mp4'))mediaRequests.push(m.params.request.url);});
  ws.addEventListener('message',event=>{const m=JSON.parse(event.data);if(m.id&&pending.has(m.id)){const p=pending.get(m.id);pending.delete(m.id);m.error?p.reject(new Error(m.error.message)):p.resolve(m.result);} });
  const cdp=(method,params={})=>new Promise((resolve,reject)=>{const callId=++id;pending.set(callId,{resolve,reject});ws.send(JSON.stringify({id:callId,method,params}));});
  const evaluate=async(expression)=>{const r=await cdp('Runtime.evaluate',{expression,awaitPromise:true,returnByValue:true});if(r.exceptionDetails)throw new Error(r.exceptionDetails.text);return r.result?.value;};
@@ -52,7 +60,7 @@ try {
  const waitForApp=()=>waitFor(async()=>evaluate(`!!document.querySelector('[data-action="step"]')`));
  const checkTutorial=async()=>{
   const state=await evaluate(`(()=>{const d=document.querySelector('.tutorial-modal'),v=d?.querySelector('video'),source=v?.querySelector('source');return {title:d?.querySelector('#tutorial-title')?.textContent,dialog:d?.getAttribute('role'),labelledby:d?.getAttribute('aria-labelledby'),video:source?.getAttribute('src'),poster:v?.getAttribute('poster'),preload:v?.getAttribute('preload'),autoplay:v?.autoplay,loop:v?.loop,paused:v?.paused,playsinline:v?.hasAttribute('playsinline'),focus:document.activeElement?.getAttribute('data-action')}})()`);
-  assert.deepEqual(state,{title:'Cómo funciona Simula tu país',dialog:'dialog',labelledby:'tutorial-title',video:TUTORIAL_VIDEO_URL,poster:TUTORIAL_POSTER_URL,preload:'none',autoplay:false,loop:false,paused:true,playsinline:true,focus:'close-tutorial'},'el mismo diálogo presenta el MP4 con controles y sin reproducción automática');
+  assert.deepEqual(state,{title:'Cómo funciona Simula tu país',dialog:'dialog',labelledby:'tutorial-title',video:videoBlob,poster:posterBlob,preload:'none',autoplay:false,loop:false,paused:true,playsinline:true,focus:'close-tutorial'},'el mismo diálogo presenta el MP4 con controles y sin reproducción automática');
   assert.equal(mediaRequests.length,0,'abrir el tutorial no descarga el MP4');
  };
  await cdp('Page.enable');await cdp('Runtime.enable');await cdp('Log.enable');await cdp('Network.enable');const browserVersion=await cdp('Browser.getVersion');await cdp('Emulation.setEmulatedMedia',{features:[{name:'prefers-color-scheme',value:'light'}]});await cdp('Page.navigate',{url:`${baseUrl}/`});
@@ -88,7 +96,7 @@ try {
   await click('[data-action="wizard-start"]');await waitFor(async()=>evaluate(`!!document.querySelector('[data-action="wizard-confirm-draft"]')`));assert.equal(await evaluate(`!!document.querySelector('#sim-date')`),false,'el cuestionario genera un borrador revisable sin ejecutar');await click('[data-action="wizard-confirm-draft"]');await waitForApp();
   assert.equal(await evaluate(`(()=>{const h=document.querySelector('.simulation-header'),i=h?.querySelector('.simulation-intro'),t=i?.querySelector('.tutorial-feature');return !!t&&!!t.closest('.welcome-intro .intro-copy')&&h.querySelector('.simulation-controls')!==null&&h.nextElementSibling?.classList.contains('lab-layout')&&!document.querySelector('.tutorial-card')})()`),true,'miniatura y texto integrados en la columna izquierda del hero, sin tarjeta autónoma');
   assert.equal(await evaluate(`document.querySelector('.tutorial-feature-title')?.textContent.trim()`),'Ver cómo funciona · 2 min','la home muestra la acción textual del tutorial');
-  assert.equal(await evaluate(`document.querySelector('.tutorial-thumbnail img')?.getAttribute('src')`),TUTORIAL_POSTER_URL,'la miniatura utiliza el poster del reproductor');
+  assert.equal(await evaluate(`document.querySelector('.tutorial-thumbnail img')?.getAttribute('src')`),posterBlob,'la miniatura utiliza el poster del reproductor');
   assert.equal(await evaluate(`(()=>{const t=document.querySelector('.tutorial-thumbnail').getBoundingClientRect(),c=document.querySelector('.tutorial-feature-copy').getBoundingClientRect(),h=document.querySelector('.simulation-intro').getBoundingClientRect();return t.left>=h.left&&t.right<c.left&&c.right<=h.right+1})()`),true,'la miniatura está a la izquierda del texto dentro de la columna de introducción');
   assert.equal(mediaRequests.length,0,'la home no solicita el MP4 antes de abrir el tutorial');
   await screenshot('tutorial-home-reference-1280');await screenshotClip('.simulation-header','tutorial-home-hero-1280');
@@ -101,6 +109,38 @@ try {
   assert.equal(await evaluate(`JSON.stringify({date:document.querySelector('#sim-date')?.textContent,kpis:document.querySelector('.kpi-grid')?.textContent,month:document.querySelector('#month-counter')?.textContent})`),tutorialState,'abrir y cerrar el tutorial conserva la simulación');
   await click('.tutorial-feature-title');await checkTutorial();await click('[data-action="close-tutorial"]');
   assert.equal(await evaluate(`document.activeElement?.classList.contains('tutorial-feature-title')`),true,'el título también abre el modal y recupera el foco');
+  const navState=()=>evaluate(`(()=>{const header=document.querySelector('.topbar'),brand=header.querySelector('.brand'),toggle=header.querySelector('.mobile-menu-toggle'),nav=header.querySelector('#primary-navigation'),tools=header.querySelector('.topbar-tools'),visible=e=>getComputedStyle(e).display!=='none'&&e.getBoundingClientRect().width>0;return {height:header.getBoundingClientRect().height,brand:visible(brand),toggle:visible(toggle),tools:visible(tools),nav:visible(nav),country:[...header.querySelectorAll('.global-country')].filter(visible).length,year:[...header.querySelectorAll('.global-country > div span')].filter(visible).length,settings:[...header.querySelectorAll('.settings-trigger')].filter(visible).length,overflow:document.documentElement.scrollWidth>innerWidth,brandRight:brand.getBoundingClientRect().right,toggleLeft:toggle.getBoundingClientRect().left,navRight:nav.getBoundingClientRect().right}})()`);
+  for(const width of [320,375,390,430]){
+    await cdp('Emulation.setDeviceMetricsOverride',{width,height:844,deviceScaleFactor:1,mobile:true});await evaluate('window.scrollTo(0,0)');
+    const closed=await navState();
+    assert.equal(closed.brand&&closed.toggle&&!closed.tools&&!closed.nav&&closed.country===0&&closed.year===0&&closed.settings===0&&closed.brandRight<closed.toggleLeft&&!closed.overflow,true,`cabecera móvil de ${width}px solo muestra marca y menú sin colisión ni desbordamiento`);
+    assert.equal(closed.height,60,`cabecera móvil compacta de ${width}px`);
+    await screenshot(`navegacion-cabecera-${width}`);
+    await click('.mobile-menu-toggle');
+    const opened=await navState();
+    assert.equal(opened.nav&&opened.country===1&&opened.year===1&&opened.height===closed.height&&!opened.overflow&&opened.navRight<=width,true,`drawer móvil de ${width}px muestra un solo contexto, cabe y no cambia la altura de cabecera`);
+    assert.equal(await evaluate(`(()=>{const n=document.querySelector('#primary-navigation');return n.getAttribute('role')==='dialog'&&n.getAttribute('aria-modal')==='true'&&n.textContent.includes('España')&&n.textContent.includes('Datos de partida: 2025')&&n.querySelector('.mobile-nav-configure')?.textContent.trim()==='Configurar'&&n.querySelector('.mobile-nav-settings')?.textContent.trim()==='Preferencias'&&!n.textContent.includes('Ajustes')&&document.querySelector('main').inert&&document.activeElement?.getAttribute('data-action')==='menu-close'&&document.elementFromPoint(innerWidth-20,200)?.closest('#primary-navigation')===n&&[...n.querySelectorAll('button')].filter(e=>getComputedStyle(e).display!=='none').every(e=>e.getBoundingClientRect().height>=44)})()`),true,`drawer móvil de ${width}px agrupa contexto, queda delante del contenido y ofrece acciones accesibles`);
+    if(width===320||width===390)await screenshot(`navegacion-drawer-${width}`);
+    await click('.mobile-nav-heading [data-action="menu-close"]');
+    assert.equal(await evaluate(`document.activeElement?.classList.contains('mobile-menu-toggle')&&!document.querySelector('main').inert`),true,`cerrar drawer de ${width}px devuelve el foco`);
+  }
+  await cdp('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
+  await click('.mobile-menu-toggle');await click('.mobile-nav-configure');
+  assert.equal(await evaluate(`!!document.querySelector('.decisions-sidebar')&&!document.querySelector('#primary-navigation').classList.contains('menu-open')&&document.activeElement?.getAttribute('data-action')==='close-decisions'`),true,'Configurar móvil abre el panel de decisiones y cierra el menú');
+  await click('[data-action="close-decisions"]');
+  assert.equal(await evaluate(`document.activeElement?.classList.contains('mobile-menu-toggle')`),true,'cerrar decisiones devuelve el foco al menú móvil');
+  await click('.mobile-menu-toggle');await cdp('Input.dispatchKeyEvent',{type:'keyDown',key:'Escape',code:'Escape',windowsVirtualKeyCode:27,nativeVirtualKeyCode:27});await cdp('Input.dispatchKeyEvent',{type:'keyUp',key:'Escape',code:'Escape',windowsVirtualKeyCode:27,nativeVirtualKeyCode:27});
+  assert.equal(await evaluate(`!document.querySelector('#primary-navigation').classList.contains('menu-open')&&document.activeElement?.classList.contains('mobile-menu-toggle')`),true,'Escape cierra el drawer y devuelve el foco');
+  await click('.mobile-menu-toggle');await click('.mobile-nav-context [data-tab="sources"]');
+  assert.equal(await evaluate(`!!document.querySelector('.source-table')&&!document.querySelector('#primary-navigation').classList.contains('menu-open')`),true,'el año de partida conserva el acceso a fuentes y cierra el menú');
+  await click('.mobile-menu-toggle');await click('#primary-navigation [data-tab="lab"]');
+  await click('.mobile-menu-toggle');await click('.mobile-nav-settings');
+  assert.equal(await evaluate(`!!document.querySelector('.settings-modal')&&!document.querySelector('#primary-navigation').classList.contains('menu-open')`),true,'Preferencias conserva los ajustes y cierra el menú móvil');
+  await click('.settings-modal [data-action="close-settings"]');
+  assert.equal(await evaluate(`document.activeElement?.classList.contains('mobile-menu-toggle')`),true,'cerrar preferencias devuelve el foco al menú móvil');
+  await cdp('Emulation.setDeviceMetricsOverride',{width:1280,height:1050,deviceScaleFactor:1,mobile:false});
+  const desktopNav=await navState();
+  assert.equal(desktopNav.brand&&!desktopNav.toggle&&desktopNav.tools&&desktopNav.nav&&desktopNav.country===1&&desktopNav.year===1&&desktopNav.settings===1&&!desktopNav.overflow,true,'desktop conserva país, año, ajustes y navegación');
   await cdp('Emulation.setDeviceMetricsOverride',{width:390,height:844,deviceScaleFactor:1,mobile:true});
   assert.equal(await evaluate(`(()=>{const t=document.querySelector('.tutorial-thumbnail').getBoundingClientRect(),c=document.querySelector('.tutorial-feature-copy').getBoundingClientRect();return document.documentElement.scrollWidth<=innerWidth&&t.width>=180&&c.top>=t.bottom})()`),true,'la home móvil apila la miniatura y el texto sin desbordar');
   await evaluate(`document.querySelector('.tutorial-feature').scrollIntoView({block:'center',behavior:'instant'})`);
@@ -350,6 +390,9 @@ try {
  assert.deepEqual(auditSession.branches.A.changes.at(-1).policy,auditGuided,'el drawer aplica exactamente la política del wizard principal');
  assert.equal(auditSession.branches.B.initialPolicy.services,19.2,'la rama original conserva su configuración previa');
  await click('[data-action="close-settings"]');
+ assert.equal(await evaluate(`(async()=>{const r=await fetch(${JSON.stringify(videoBlob)},{method:'HEAD'});return r.status})()`),200,'el vídeo del root se sirve desde el blob');
+ assert.ok(mediaRequests.includes(`${baseUrl}${videoBlob}`),'Network observa el vídeo content-addressed del root');
+ assert.ok(!mediaRequests.includes(`${baseUrl}${TUTORIAL_VIDEO_URL}`),'Network no observa el path mutable del vídeo');
   assert.deepEqual(pageErrors,[],'el flujo de presets no genera errores de consola/página');console.log('PASS E2E presets: opciones explicadas, catálogo oficial, borrador, acceso Configurar tras 36 meses, bifurcación, máximo dos ramas, exportación e importación de provenance.');
  console.log('PASS Chromium real: HTTP, Web Worker, navegación inicial, preset, layout 360/390/1280, cuestionario, comparación, cambio, avance, IndexedDB y export/import.');
  console.log(`Navegador: ${browserVersion.product}; errores de consola/página: ${JSON.stringify(pageErrors)}`);

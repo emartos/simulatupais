@@ -9,11 +9,13 @@
   },
   "scripts": {
     "build": "node scripts/build.mjs",
+    "replay:archive": "node scripts/archive-replay.mjs",
+    "replay:verify": "node scripts/verify-replay.mjs",
     "start": "node scripts/serve.mjs",
     "dev": "npm run build && npm start",
     "test": "npm run build && node --test tests/*.test.mjs",
     "test:regression": "node docs/playbook/verificar.mjs .",
-    "test:browser": "node tests/browser-cdp.mjs && node tests/browser-scenarios.mjs",
+    "test:browser": "node tests/browser-cdp.mjs && node tests/browser-scenarios.mjs && node tests/browser-share.mjs && node tests/browser-replay.mjs",
     "test:browser:scenarios": "node tests/browser-scenarios.mjs",
     "test:full": "npm test && npm run test:regression && npm run test:browser",
     "check:data": "node scripts/check-data.mjs"
@@ -21,5 +23,8 @@
   "devDependencies": {
     "esbuild": "^0.28.2",
     "typescript": "5.8.3"
+  },
+  "dependencies": {
+    "fflate": "0.8.3"
   }
 }

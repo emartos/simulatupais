@@ -1,0 +1,13 @@
+{
+  "schema": 1,
+  "runtimes": {
+    "rt-e4e8b256bc991115b82b1b761046010e": {
+      "path": "/replay/rt-e4e8b256bc991115b82b1b761046010e/",
+      "country": "ES",
+      "modelVersion": "0.3.0",
+      "datasetVersion": "es-reviewed-2026-09-30.1",
+      "datasetHash": "770afa37d94860e954b052c6b28590cf70a233daa0447d6328fc525f4090b3f0",
+      "contentSha256": "7e24006e4c1912b487571a77235c23449e5f973fe19096083ce5eb0004a6151f"
+    }
+  }
+}

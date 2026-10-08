@@ -9,6 +9,7 @@ import { renderChart, METRICS } from './ui/chart.js';
 import type { Metric } from './ui/chart.js';
 import { WIZARD_QUESTIONS, guidedAnswerValue, wizardChoiceDetail, wizardPolicy } from './ui/wizard.js';
 import { renderVideoTutorial, renderVideoTutorialDialog } from './ui/video-tutorial.js';
+import { replayAssetUrl } from './ui/replay-assets.js';
 import type { VideoTutorialVariant } from './ui/video-tutorial.js';
 import { ECONOMIC_DECISIONS, decisionValueChanged, economicDecisionChanges, formatDecisionDifference, formatDecisionSummary, formatDecisionValue } from './ui/economic-decisions.js';
 import { calculateChangeOrientation, ECONOMIC_AXIS_METHOD } from './ui/economic-axis-method.js';
@@ -18,6 +19,12 @@ import { applyPoliticalPreset } from './political-presets/apply.js';
 import { positionToControlValue } from './political-presets/coding.js';
 import { changedPresetValues, POLITICAL_CONTROL_KEYS } from './political-presets/schema.js';
 import type { PoliticalPreset } from './political-presets/schema.js';
+import { readScenarioUrl, scenarioUrl, SCENARIO_URL_VERSION } from './ui/shared-scenario.js';
+import { changedDecisionsCount, downloadScenarioCard, drawScenarioCard, scenarioMetrics, scenarioSummary, shareText, socialShareUrls } from './ui/scenario-share.js';
+import { editorialSlug, findEditorialScenario } from './ui/editorial-scenarios.js';
+import type { EditorialScenario } from './ui/editorial-scenarios.js';
+import { emitGrowthEvent } from './ui/growth-events.js';
+import type { ScenarioSource } from './ui/growth-events.js';
 
 const root=document.querySelector<HTMLDivElement>('#app')!;
 const worker=new Worker(new URL('./worker.js',import.meta.url),{type:'module'});
@@ -34,6 +41,8 @@ let tutorialOpen=false,tutorialReturnFocus:HTMLElement|null=null,tutorialReturnV
 let decisionsReturnFocus:HTMLElement|null=null;
 let restoredSession=false;
 let mobileMenuOpen=false;
+let shareOpen=false,editorialActive:EditorialScenario|undefined,scenarioSource:ScenarioSource='default',preserveStoredSession=false;
+let sharedModified=false,sharedSimulated=false,scenarioLoadError='';
 let configTab:'economy'|'institutions'|'advanced'='economy';
 let configuredBranchId:'A'|'B'='B', compareSourceId:'A'|'B'='B', observedBranchId:'A'|'B'='B';
 let introOpen=true, wizardStep=0, wizardAnswers:(number|null)[]=Array(6).fill(null),wizardAnswered:boolean[]=Array(6).fill(true);
@@ -59,8 +68,8 @@ function showToast(message:string,error=false):void {
   clearTimeout(toastTimer);document.querySelector('#toast')?.remove();
   const node=document.createElement('div');node.id='toast';node.className=`toast${error?' error':''}`;node.setAttribute('role',error?'alert':'status');node.textContent=message;document.body.append(node);toastTimer=setTimeout(()=>node.remove(),5000);
 }
-function saveLabel():string {return saveStatus==='unavailable'?'Sin guardado automático':saveStatus==='saving'?'Guardando…':saveStatus==='idle'?'Aún sin guardar':'Guardado en este navegador';}
-function saveHelpText():string {return saveStatus==='unavailable'?'El guardado automático no está disponible. La simulación funciona en memoria y puedes exportarla.':saveStatus==='idle'?'Aún no hay una configuración guardada. Se guardará en este navegador cuando empieces la simulación o cambies los controles.':'Tu configuración y el progreso se guardan en este navegador y dispositivo. No se sincronizan con otros dispositivos. Si borras los datos del sitio, usas navegación privada o el navegador elimina ese almacenamiento, podrías perderlos. Exporta la simulación para conservar una copia.';}
+function saveLabel():string {return preserveStoredSession?'Escenario abierto desde enlace':saveStatus==='unavailable'?'Sin guardado automático':saveStatus==='saving'?'Guardando…':saveStatus==='idle'?'Aún sin guardar':'Guardado en este navegador';}
+function saveHelpText():string {return preserveStoredSession?'Este escenario se mantiene en memoria. La sesión que ya tenías guardada en este navegador no se ha sustituido. Comparte el enlace o exporta la simulación para conservarlo.':saveStatus==='unavailable'?'El guardado automático no está disponible. La simulación funciona en memoria y puedes exportarla.':saveStatus==='idle'?'Aún no hay una configuración guardada. Se guardará en este navegador cuando empieces la simulación o cambies los controles.':'Tu configuración y el progreso se guardan en este navegador y dispositivo. No se sincronizan con otros dispositivos. Si borras los datos del sitio, usas navegación privada o el navegador elimina ese almacenamiento, podrías perderlos. Exporta la simulación para conservar una copia.';}
 function saveControl():string {return `<section class="settings-storage" aria-labelledby="save-help-title"><h3 id="save-help-title">Guardado y archivos</h3><p><strong id="save-label" data-status="${saveStatus}">${saveLabel()}</strong></p><p id="save-help-text">${esc(saveHelpText())}</p><div class="settings-actions"><button data-action="export">Exportar simulación</button><button data-action="import">Importar simulación</button></div></section>`;}
 function modelVerification():string {
   const ref=buildReference(sessionEngineBuild);
@@ -86,7 +95,7 @@ function command(type:WorkerRequest['type'],payload?:unknown):Promise<Experiment
   });
 }
 function persist():void {
-  if(!saveReady || !storageAvailable || !exp) return;
+  if(!saveReady || !storageAvailable || !exp || preserveStoredSession) return;
   const session=exportSession(exp,datasetHash,sessionEngineBuild,sessionPresetOrigin,sessionPresetBranchOrigins);if(saveStatus==='idle'){saveStatus='saving';updateSaveLabel();}
   saveQueue=saveQueue.then(()=>saveLocal(session)).then(()=>{saveStatus='saved';updateSaveLabel();}).catch(()=>{
     storageAvailable=false;saveStatus='unavailable';updateSaveLabel();showToast('No se pudo guardar automáticamente. La simulación sigue disponible en memoria; expórtala para conservarla.',true);
@@ -95,7 +104,7 @@ function persist():void {
 function updateSaveLabel():void {
   const warning=document.querySelector<HTMLElement>('#storage-warning');if(warning)warning.hidden=saveStatus!=='unavailable';
   const el=document.querySelector('#save-label');if(!el)return;
-  const label=saveStatus==='unavailable'?'Sin guardado automático':saveStatus==='saving'?'Guardando…':saveStatus==='idle'?'Aún sin guardar':'Guardado en este navegador';
+  const label=saveLabel();
   if(el.textContent!==label)el.textContent=label;
   el.setAttribute('data-status',saveStatus);
   const title=document.querySelector('#save-help-title'),text=document.querySelector('#save-help-text');if(title&&title.textContent!==label)title.textContent=label;const help=saveHelpText();if(text&&text.textContent!==help)text.textContent=help;
@@ -151,11 +160,12 @@ function schedule():void {
 async function advanceTime(months:number):Promise<void> {
   if(busy)return;
   busy=true;
-  try {exp=await command('ADVANCE',months);}
+  emitGrowthEvent({name:'simulation_started',...growthContext()});
+  try {const before=activeBranch().state.month;exp=await command('ADVANCE',months);if(activeBranch().state.month!==before)markScenarioModified();emitGrowthEvent({name:'simulation_completed',...growthContext()});if(scenarioSource==='shared_url'&&sharedModified&&!sharedSimulated){sharedSimulated=true;emitGrowthEvent({name:'shared_scenario_simulated',country:dataset.countryCode,horizon:activeBranch().state.month,scenario_version:SCENARIO_URL_VERSION});}}
   catch(e){pause();showToast((e as Error).message,true);}
   finally{
     const queued=queuedLivePolicy;queuedLivePolicy=undefined;
-    if(queued){try{exp=await command('CONFIGURE',{branchId:queued.branchId,policy:queued.policy});}catch(e){showToast((e as Error).message,true);}}
+    if(queued){try{exp=await command('CONFIGURE',{branchId:queued.branchId,policy:queued.policy});markScenarioModified();}catch(e){showToast((e as Error).message,true);}}
     draft={...branch(configuredBranchId).policy};persist();busy=false;if(activeBranch().state.month>=MAX_MONTHS)pause();render();schedule();
   }
 }
@@ -287,7 +297,7 @@ function mainDashboard():string {
   const technical=`<section class="query-panel technical-panel" id="view-panel-technical" role="region" aria-labelledby="technical-title">${viewHeader('technical-title','Comprobar los cálculos','Consulta los valores, las reglas y las operaciones utilizadas en este periodo','calculator')}<div class="query-body"><h3>Datos de entrada</h3><p>${esc(branchName(primaryId))} · España · ${date}. Semilla aleatoria: ${exp.seed}; modelo ${MODEL_VERSION}; catálogo ${esc(dataset.version)}.</p><div class="technical-policy"><code>${esc(JSON.stringify(primary.policy,null,2))}</code></div><h3>Regla aplicada</h3>${tracePanel()}<h3>Resultado del periodo</h3><p class="period-note">${esc(branchName(primaryId))} · España · ${date}. Valores simulados, comparados con los datos de partida de ${esc(branchName(primaryId))}.</p>${countryPanel()}<details class="model-disclosure"><summary>Cómo funciona: ecuaciones y límites</summary>${modelPage()}</details></div></section>`;
   const view=activeViewPanel==='evolution'?evolution:activeViewPanel==='understand'?understand:technical;
   const sidebar=decisionsOpen?`<button class="decisions-scrim" data-action="close-decisions" aria-label="Cerrar decisiones" tabindex="-1"></button><aside class="decisions-sidebar" role="complementary" aria-label="Configurar decisiones">${configPanel()}</aside>`:'';
-  return `<div class="workspace ${decisionsOpen?'with-decisions':''}">${sidebar}<div class="dashboard-content">${economicDecisions(primary.policy)}<section class="kpi-grid">${cards}</section>${primary.state.constraints.length?`<div class="notice compact" role="status">Límite numérico del modelo: ${esc(primary.state.constraints.join(' '))} Los números finitos no garantizan que el escenario sea plausible.</div>`:''}<nav class="content-views" aria-label="Contenido de la simulación">${([['evolution','Evolución'],['understand','Explicación'],['technical','Detalle técnico']] as const).map(([id,label])=>`<button type="button" data-view="${id}" aria-pressed="${activeViewPanel===id}" class="${activeViewPanel===id?'active':''}">${label}</button>`).join('')}</nav><div class="view-content" id="active-view">${view}</div></div></div>`;
+  return `<div class="workspace ${decisionsOpen?'with-decisions':''}">${sidebar}<div class="dashboard-content">${economicDecisions(primary.policy)}<section class="kpi-grid">${cards}</section>${shareSection()}${primary.state.constraints.length?`<div class="notice compact" role="status">Límite numérico del modelo: ${esc(primary.state.constraints.join(' '))} Los números finitos no garantizan que el escenario sea plausible.</div>`:''}<nav class="content-views" aria-label="Contenido de la simulación">${([['evolution','Evolución'],['understand','Explicación'],['technical','Detalle técnico']] as const).map(([id,label])=>`<button type="button" data-view="${id}" aria-pressed="${activeViewPanel===id}" class="${activeViewPanel===id?'active':''}">${label}</button>`).join('')}</nav><div class="view-content" id="active-view">${view}</div></div></div>`;
 }
 
 function countryPanel():string {
@@ -337,7 +347,7 @@ function presetCoverage(preset:PoliticalPreset):string {
 function presetActorLogo(preset:PoliticalPreset):string {
   if(!preset.logo)return '';
   const presentation=preset.logoPresentation,style=presentation?` style="--logo-scale:${presentation.scale??1};${presentation.maxWidth?`--logo-max-width:${presentation.maxWidth}px;`:''}${presentation.maxHeight?`--logo-max-height:${presentation.maxHeight}px;`:''}${presentation.objectPosition?`--logo-object-position:${presentation.objectPosition};`:''}"`:'';
-  return `<span class="preset-logo"${style} aria-hidden="true"><img src="${esc(preset.logo.path)}" alt="" loading="eager"></span>`;
+  return `<span class="preset-logo"${style} aria-hidden="true"><img src="${esc(replayAssetUrl(preset.logo.path))}" alt="" loading="eager"></span>`;
 }
 function presetValue(key:typeof POLITICAL_CONTROL_KEYS[number],preset:PoliticalPreset):string {
   const item=preset.policies[key];return item.status==='UNMAPPED'?'Se conserva el valor actual':valueLabel(key,item.mappingMethod==='STANDARDIZED_CODING'?positionToControlValue(exp.base,key,item.positionScore as Exclude<typeof item.positionScore,null>):item.value!);
@@ -428,6 +438,51 @@ function simulationControls():string {
   return `<section class="context-bar simulation-controls"><div class="simulation-state">${branchSelector}<div class="context-date"><span>Fecha simulada</span><strong id="sim-date">${date}</strong></div></div><button data-action="decisions-toggle" aria-expanded="${decisionsOpen}">${icon('sliders',17)}Configurar</button><div class="context-time"><div id="time-controls">${timeControls()}</div><div class="month-counter context-month" id="month-counter">${esc(monthText(primary.state.month))} · límite de ${MAX_MONTHS/12} años</div></div></section>`;
 }
 
+function shareSection():string {
+  const id=observedBranchId;
+  let url:string;
+  try{url=scenarioUrl(exp,datasetHash,dataset.countryCode,id,location.origin,BUILD_INFO.replayRuntimeId);}
+  catch(error){return `<section class="scenario-sharing" aria-labelledby="share-title"><h2 id="share-title">Tu escenario</h2><p>${esc((error as Error).message)} Puedes exportar la simulación desde Preferencias.</p></section>`;}
+  const summary=scenarioSummary(exp,id),message=shareText(summary),social=socialShareUrls(url,message);
+  const metrics=scenarioMetrics(branch(id));
+  return `<section class="scenario-sharing" aria-labelledby="share-title"><div class="scenario-sharing-copy"><h2 id="share-title">Tu escenario</h2><p>${esc(summary)}</p><p>Este resultado corresponde a un escenario simulado. No es una predicción. <button data-tab="model" class="share-method-link">Cómo se calcula</button></p></div><div class="scenario-sharing-actions"><button type="button" data-action="share-primary" class="primary">Compartir escenario</button><button type="button" data-action="share-options" aria-expanded="${shareOpen}" aria-controls="share-options-panel">Opciones</button></div>${shareOpen?`<div class="share-options-panel" id="share-options-panel" role="group" aria-label="Opciones para compartir"><p>${esc(message)}</p>${metrics.length?`<p class="share-result-summary">${metrics.slice(0,3).map(item=>`${esc(item.label)}: ${esc(item.value)}`).join(' · ')}</p>`:''}<div class="share-option-buttons"><button type="button" data-action="share-copy">Copiar enlace</button><a href="${esc(social.whatsapp)}" data-share-method="whatsapp" target="_blank" rel="noopener noreferrer">WhatsApp</a><a href="${esc(social.x)}" data-share-method="x" target="_blank" rel="noopener noreferrer">X</a><button type="button" data-action="share-image">Descargar imagen</button></div><label for="share-url-manual">Enlace del escenario</label><input id="share-url-manual" type="text" readonly value="${esc(url)}"><canvas id="share-card-preview" width="1200" height="630" role="img" aria-label="Vista previa de la tarjeta del escenario"></canvas></div>`:''}</section>`;
+}
+
+function editorialPanel():string {
+  if(!editorialActive)return '';
+  const item=editorialActive,changes=economicDecisionChanges(baselinePolicy(exp.base),branch(observedBranchId).policy);
+  return `<section class="editorial-scenario" aria-labelledby="editorial-title"><span class="eyebrow">ESCENARIO DE DEMOSTRACIÓN</span><h2 id="editorial-title">${esc(item.title)}</h2><p class="editorial-question">${esc(item.question)}</p><p>${esc(item.description)}</p><h3>Configuración</h3><ul>${changes.map(change=>`<li>${esc(formatDecisionSummary(change))}</li>`).join('')}</ul><p>${esc(scenarioSummary(exp,observedBranchId))}</p><button type="button" data-action="editorial-modify">Modificar este escenario</button></section>`;
+}
+function growthContext():{country:string;horizon:number;changed_decisions_count:number} {
+  return {country:dataset.countryCode,horizon:branch(observedBranchId).state.month,changed_decisions_count:changedDecisionsCount(exp,observedBranchId)};
+}
+function markScenarioModified():void {
+  editorialActive=undefined;
+  if(scenarioSource==='shared_url'&&!sharedModified){
+    sharedModified=true;emitGrowthEvent({name:'shared_scenario_modified',country:dataset.countryCode,horizon:branch(observedBranchId).state.month,scenario_version:SCENARIO_URL_VERSION});
+  }
+}
+async function shareCurrentScenario():Promise<void> {
+  let url:string;
+  try{url=scenarioUrl(exp,datasetHash,dataset.countryCode,observedBranchId,location.origin,BUILD_INFO.replayRuntimeId);}
+  catch(error){showToast((error as Error).message,true);return;}
+  const text=shareText(scenarioSummary(exp,observedBranchId));
+  if(typeof navigator.share==='function'){
+    emitGrowthEvent({name:'share_clicked',method:'native'});
+    try{await navigator.share({title:'Simula tu país',text,url});emitGrowthEvent({name:'share_completed',method:'native'});return;}
+    catch(error){if((error as DOMException).name==='AbortError')return;}
+  }
+  shareOpen=true;render();document.querySelector<HTMLButtonElement>('[data-action="share-copy"]')?.focus();
+}
+async function copyScenarioUrl():Promise<void> {
+  emitGrowthEvent({name:'share_clicked',method:'copy'});
+  let url:string;
+  try{url=scenarioUrl(exp,datasetHash,dataset.countryCode,observedBranchId,location.origin,BUILD_INFO.replayRuntimeId);}
+  catch(error){showToast((error as Error).message,true);return;}
+  try{await navigator.clipboard.writeText(url);showToast('Enlace copiado');emitGrowthEvent({name:'share_completed',method:'copy'});}
+  catch{showToast('No se pudo copiar el enlace. Puedes copiarlo manualmente.',true);const input=document.querySelector<HTMLInputElement>('#share-url-manual');input?.focus();input?.select();}
+}
+
 function closeTutorial():void {
   document.querySelector<HTMLVideoElement>('#tutorial-video')?.pause();
   tutorialOpen=false;
@@ -443,16 +498,20 @@ function render():void {
   const openDetails=new Map([...document.querySelectorAll<HTMLDetailsElement>('#app details')].map(detail=>[detailStateKey(detail),detail.open]));
   const tabs:[string,string,string][]=[['lab','Simulador','chart'],['model','Cómo funciona','book'],['sources','Datos y fuentes','globe'],['about','Acerca de','info']];
   let page='';
-  if(currentTab==='lab')page=`<section class="simulation-header" aria-label="Introducción y controles de simulación"><div class="simulation-intro">${simulationIntro()}</div>${simulationControls()}</section><div class="lab-layout">${mainDashboard()}</div>`;
+  if(currentTab==='lab')page=`${editorialPanel()}<section class="simulation-header" aria-label="Introducción y controles de simulación"><div class="simulation-intro">${simulationIntro()}</div>${simulationControls()}</section><div class="lab-layout">${mainDashboard()}</div>`;
   else if(currentTab==='model')page=modelPage();else if(currentTab==='sources')page=sourcesPage();else if(currentTab==='about')page=aboutPage();else page=wizardPage();
-  patchHtml(`<header class="topbar"><a class="brand" href="#" data-action="home"><span class="brand-mark">S</span><strong>Simula tu país</strong></a><nav id="primary-navigation" class="${mobileMenuOpen?'menu-open':''}" aria-label="Secciones">${tabs.map(([id,label,ico])=>`<button aria-current="${currentTab===id||currentTab==='wizard'&&id==='lab'?'page':'false'}" data-tab="${id}" class="${currentTab===id||currentTab==='wizard'&&id==='lab'?'active':''}">${icon(ico,15)}${label}</button>`).join('')}</nav><div class="topbar-tools"><div class="global-country"><span class="spain-flag" aria-hidden="true"></span><div><strong>España</strong><span>Datos de partida: ${exp.base.year}</span></div><button data-tab="sources" aria-label="Consultar datos y fuentes de España">${icon('chevron',14)}</button></div><button data-action="open-settings" class="settings-trigger">${icon('settings',16)}Ajustes</button></div><button class="mobile-menu-toggle" type="button" data-action="menu-toggle" aria-controls="primary-navigation" aria-expanded="${mobileMenuOpen}" aria-label="${mobileMenuOpen?'Cerrar menú':'Abrir menú'}"><span></span><span></span><span></span></button></header><div id="storage-warning" class="storage-warning" role="alert" ${saveStatus==='unavailable'?'':'hidden'}>No se está guardando esta simulación. <button data-action="export">Exportar ahora</button> o <button data-action="open-settings">consultar detalles</button>.</div><main>${page}<footer><span>Simula tu país · aplicación ${esc(BUILD_INFO.appVersion)} · modelo ${MODEL_VERSION} · catálogo ${esc(dataset.version)} · revisión ${esc(dataset.reviewed)}</span><nav aria-label="Enlaces del proyecto"><button data-tab="model">Metodología</button><button data-tab="sources">Fuentes</button><a href="${esc(REPOSITORY_URL)}" target="_blank" rel="noopener noreferrer">Código fuente</a><a href="${esc(LICENSE_URL)}" target="_blank" rel="noopener noreferrer">Licencia</a></nav></footer></main><input type="file" id="import-file" accept="application/json,.json" hidden>${settingsDialog()}${dialog()}${tutorialOpen?renderVideoTutorialDialog():''}`);
+  const countryContext=`<div class="global-country"><span class="spain-flag" aria-hidden="true"></span><div><strong>España</strong><span>Datos de partida: ${exp.base.year}</span></div><button data-tab="sources" aria-label="Consultar datos y fuentes de España">${icon('chevron',14)}</button></div>`;
+  patchHtml(`<header class="topbar"><a class="brand" href="#" data-action="home" ${mobileMenuOpen?'inert':''}><span class="brand-mark">S</span><strong>Simula tu país</strong></a><button class="mobile-menu-toggle" type="button" data-action="menu-toggle" aria-controls="primary-navigation" aria-expanded="${mobileMenuOpen}" aria-label="Abrir menú" ${mobileMenuOpen?'inert':''}><span></span><span></span><span></span></button>${mobileMenuOpen?'<button class="mobile-nav-scrim" data-action="menu-close" aria-label="Cerrar menú" tabindex="-1"></button>':''}<nav id="primary-navigation" class="${mobileMenuOpen?'menu-open':''}" aria-label="Secciones" ${mobileMenuOpen?'role="dialog" aria-modal="true" aria-labelledby="mobile-nav-title"':''}><div class="mobile-nav-heading"><strong id="mobile-nav-title">Menú</strong><button type="button" data-action="menu-close" aria-label="Cerrar menú">${icon('close',20)}</button></div><div class="mobile-nav-context">${countryContext}</div><button type="button" class="mobile-nav-configure" data-action="mobile-configure">${icon('sliders',16)}Configurar</button>${tabs.map(([id,label,ico])=>`<button aria-current="${currentTab===id||currentTab==='wizard'&&id==='lab'?'page':'false'}" data-tab="${id}" class="${currentTab===id||currentTab==='wizard'&&id==='lab'?'active':''}">${icon(ico,15)}${label}</button>`).join('')}<button type="button" class="mobile-nav-settings" data-action="open-settings">${icon('settings',16)}Preferencias</button></nav><div class="topbar-tools">${countryContext}<button data-action="open-settings" class="settings-trigger">${icon('settings',16)}Ajustes</button></div></header><div id="storage-warning" class="storage-warning" role="alert" ${saveStatus==='unavailable'?'':'hidden'} ${mobileMenuOpen?'inert':''}>No se está guardando esta simulación. <button data-action="export">Exportar ahora</button> o <button data-action="open-settings">consultar detalles</button>.</div><main ${mobileMenuOpen?'inert':''}>${page}<footer><span>Simula tu país · aplicación ${esc(BUILD_INFO.appVersion)} · modelo ${MODEL_VERSION} · catálogo ${esc(dataset.version)} · revisión ${esc(dataset.reviewed)}</span><nav aria-label="Enlaces del proyecto"><button data-tab="model">Metodología</button><button data-tab="sources">Fuentes</button><a href="${esc(REPOSITORY_URL)}" target="_blank" rel="noopener noreferrer">Código fuente</a><a href="${esc(LICENSE_URL)}" target="_blank" rel="noopener noreferrer">Licencia</a></nav></footer></main><input type="file" id="import-file" accept="application/json,.json" hidden>${settingsDialog()}${dialog()}${tutorialOpen?renderVideoTutorialDialog():''}`);
+  document.body.classList.toggle('mobile-nav-open',mobileMenuOpen);
   for(const [cls,top]of scrolls){const e=document.getElementsByClassName(cls)[0];if(e)e.scrollTop=top;}
   document.querySelectorAll<HTMLDetailsElement>('#app details').forEach(detail=>{const open=openDetails.get(detailStateKey(detail));if(open!==undefined)detail.open=open;});
+  const shareCanvas=document.querySelector<HTMLCanvasElement>('#share-card-preview');if(shareCanvas)drawScenarioCard(shareCanvas,exp,observedBranchId);
   if(tutorialOpen&&!document.querySelector('.tutorial-modal :focus'))document.querySelector<HTMLButtonElement>('[data-action="close-tutorial"]')?.focus();
   else if(pendingDialog)document.querySelector<HTMLButtonElement>('[data-action="cancel-dialog"]')?.focus();
   else if(settingsOpen&&!document.querySelector('.settings-modal button:focus'))document.querySelector<HTMLButtonElement>('.settings-modal [data-action="close-settings"]')?.focus();
   else if(!settingsOpen&&settingsReturnFocus){const focus=settingsReturnFocus;settingsReturnFocus=null;focus.focus();}
   else if(dialogReturnFocus&&!busy){const origin=dialogReturnFocus;dialogReturnFocus=null;const target=document.querySelector<HTMLInputElement>('[data-policy]:not(:disabled)');if(target)target.focus();else restoreDialogFocus(origin);}
+  else if(mobileMenuOpen&&!document.querySelector('#primary-navigation :focus'))document.querySelector<HTMLButtonElement>('.mobile-nav-heading button')?.focus();
   installChartTooltip();
 }
 function installChartTooltip():void {
@@ -469,7 +528,7 @@ function installChartTooltip():void {
 async function applyDraft():Promise<void> {
   if(busy){if(playing)queuedLivePolicy={branchId:configuredBranchId,policy:{...draft}};return;}clearTimeout(timer);busy=true;document.querySelectorAll<HTMLInputElement|HTMLSelectElement>('[data-policy]').forEach(el=>el.disabled=true);renderControls();
   const submitted={...draft},id=configuredBranchId;
-  try{exp=await command('CONFIGURE',{branchId:id,policy:submitted});draft={...branch(id).policy};firstRunSetup=false;markConfigured();persist();}
+  try{const changed=JSON.stringify(submitted)!==JSON.stringify(branch(id).policy);exp=await command('CONFIGURE',{branchId:id,policy:submitted});if(changed)markScenarioModified();draft={...branch(id).policy};firstRunSetup=false;markConfigured();persist();}
   catch(e){showToast((e as Error).message,true);draft={...branch(id).policy};}
   finally{busy=false;render();schedule();}
 }
@@ -492,14 +551,14 @@ root.addEventListener('input',e=>{
   if(el.id==='observed-branch'){observedBranchId=el.value as 'A'|'B';configuredBranchId=observedBranchId;draft={...branch(configuredBranchId).policy};try{localStorage.setItem('simula-observed-branch',observedBranchId);}catch{}render();}
   if(el.id==='compare-source'){compareSourceId=el.value as 'A'|'B';}
   if(el.dataset.scenarioName){const id=el.dataset.scenarioName as 'A'|'B',value=el.value.trim().slice(0,60);if(value){exp={...exp,branchNames:{...(exp.branchNames||{A:'Simulación original',B:'Alternativa'}),[id]:value}};persist();render();}}
-  if(el.id==='seed')void (async()=>{if(busy||pending.size||activeBranch().state.month>0||exp.comparisonActive)return;pause();busy=true;const seed=Number(el.value);try{exp=await command('INIT',{dataset,seed,policy:draft,primary:true});draft={...exp.b.policy};persist();}catch(err){showToast((err as Error).message,true);}finally{busy=false;render();}})();
+  if(el.id==='seed')void (async()=>{if(busy||pending.size||activeBranch().state.month>0||exp.comparisonActive)return;pause();busy=true;const seed=Number(el.value),changed=seed!==exp.seed;try{exp=await command('INIT',{dataset,seed,policy:draft,primary:true});if(changed)markScenarioModified();draft={...exp.b.policy};persist();}catch(err){showToast((err as Error).message,true);}finally{busy=false;render();}})();
   if(el.id==='import-file'&&el.files?.[0])void importFile(el.files[0]);
 });
 async function importFile(file:File):Promise<void> {
   pause();if(busy)return;
   if(file.size>100_000){showToast('La sesi\u00f3n supera el l\u00edmite de 100 KB.',true);return;}
   busy=true;
-  try{const s=validateSession(JSON.parse(await file.text()),exp.base,datasetHash);exp=await command('RESTORE',s);sessionEngineBuild=s.engineBuild||{engineVersion:s.modelVersion,commitSha:null};sessionPresetOrigin='presetOrigin' in s?s.presetOrigin:undefined;sessionPresetBranchOrigins='presetBranchOrigins' in s?s.presetBranchOrigins||{}:{};observedBranchId=exp.primaryId||'B';configuredBranchId=exp.comparisonActive?(observedBranchId==='A'?'B':'A'):observedBranchId;draft={...branch(configuredBranchId).policy};persist();showToast('Sesi\u00f3n importada y recalculada con el modelo fijado.');}
+  try{const s=validateSession(JSON.parse(await file.text()),exp.base,datasetHash);exp=await command('RESTORE',s);scenarioSource='local';preserveStoredSession=false;editorialActive=undefined;sessionEngineBuild=s.engineBuild||{engineVersion:s.modelVersion,commitSha:null};sessionPresetOrigin='presetOrigin' in s?s.presetOrigin:undefined;sessionPresetBranchOrigins='presetBranchOrigins' in s?s.presetBranchOrigins||{}:{};observedBranchId=exp.primaryId||'B';configuredBranchId=exp.comparisonActive?(observedBranchId==='A'?'B':'A'):observedBranchId;draft={...branch(configuredBranchId).policy};persist();showToast('Sesi\u00f3n importada y recalculada con el modelo fijado.');}
   catch(e){showToast((e as Error).message,true);}
   finally{busy=false;render();}
 }
@@ -514,22 +573,29 @@ root.addEventListener('click',e=>{
   if(el.dataset.action==='appearance'){setAppearance(el.dataset.appearance as Appearance);render();return;}
   if(el.id==='save-help'){e.preventDefault();toggleSaveHelp();return;}
   if(el.dataset.view){activeViewPanel=el.dataset.view as typeof activeViewPanel;render();return;}
+  if(el.dataset.shareMethod==='whatsapp'||el.dataset.shareMethod==='x'){emitGrowthEvent({name:'share_clicked',method:el.dataset.shareMethod});return;}
   const action=el.dataset.action;if(!action)return;e.preventDefault();
+  if(action==='share-primary'){void shareCurrentScenario();return;}
+  if(action==='share-options'){shareOpen=!shareOpen;render();if(shareOpen)document.querySelector<HTMLButtonElement>('[data-action="share-copy"]')?.focus();else document.querySelector<HTMLButtonElement>('[data-action="share-options"]')?.focus();return;}
+  if(action==='share-copy'){void copyScenarioUrl();return;}
+  if(action==='share-image'){void downloadScenarioCard(exp,observedBranchId).catch(error=>showToast((error as Error).message,true));return;}
+  if(action==='editorial-modify'){decisionsReturnFocus=el;configuredBranchId=observedBranchId;draft={...branch(configuredBranchId).policy};decisionsOpen=true;render();document.querySelector<HTMLButtonElement>('[data-action="close-decisions"]')?.focus();return;}
   if(action==='open-tutorial'){tutorialReturnFocus=el;tutorialReturnVariant=el.dataset.tutorialVariant==='home'?'home':'intro';tutorialOpen=true;render();return;}
   if(action==='close-tutorial'){closeTutorial();return;}
-  if(action==='open-settings'){settingsReturnFocus=el;settingsOpen=true;render();return;}
+  if(action==='open-settings'){settingsReturnFocus=mobileMenuOpen?document.querySelector<HTMLButtonElement>('.mobile-menu-toggle'):el;mobileMenuOpen=false;settingsOpen=true;render();return;}
   if(action==='close-settings'){settingsOpen=false;render();return;}
   if(action==='open-decisions'){settingsOpen=false;decisionsReturnFocus=settingsReturnFocus||el;settingsReturnFocus=null;configuredBranchId=observedBranchId;draft={...branch(configuredBranchId).policy};decisionsOpen=true;render();document.querySelector<HTMLButtonElement>('[data-action="close-decisions"]')?.focus();return;}
   if(action==='open-advanced'){settingsOpen=false;decisionsReturnFocus=settingsReturnFocus||el;settingsReturnFocus=null;configuredBranchId=observedBranchId;draft={...branch(configuredBranchId).policy};decisionsMode='controls';configTab='advanced';decisionsOpen=true;render();document.querySelector<HTMLButtonElement>('[data-action="close-decisions"]')?.focus();return;}
   if(action==='observe-branch'){selectObservedBranch(el.dataset.branch as 'A'|'B');return;}
-  if(action==='menu-toggle'){mobileMenuOpen=!mobileMenuOpen;render();return;}
+  if(action==='menu-toggle'){mobileMenuOpen=true;render();return;}
+  if(action==='menu-close'){mobileMenuOpen=false;render();document.querySelector<HTMLButtonElement>('.mobile-menu-toggle')?.focus();return;}
   if(action==='play'){if(playing){pause();renderControls();}else if(activeBranch().state.month<MAX_MONTHS){playing=true;renderControls();schedule();}}
   if(action==='step'){pause();renderControls();void advanceTime(1);}
   if(action==='year'){pause();renderControls();void advanceTime(12);}
   if(action==='export'){const month=activeBranch().state.month;download(`simula-tu-pais-sesion-${exp.seed}-mes-${month}.json`,JSON.stringify(exportSession(exp,datasetHash,sessionEngineBuild,sessionPresetOrigin,sessionPresetBranchOrigins),null,2));}
   if(action==='import')document.querySelector<HTMLInputElement>('#import-file')?.click();
   if(action==='csv')exportCSV();
-  if(action==='decisions-toggle'){decisionsReturnFocus=el;configuredBranchId=observedBranchId;draft={...branch(configuredBranchId).policy};wizardStep=0;wizardAnswers=Array(6).fill(null);wizardAnswered=Array(6).fill(false);decisionsOpen=true;render();document.querySelector<HTMLButtonElement>('[data-action="close-decisions"]')?.focus();return;}
+  if(action==='decisions-toggle'||action==='mobile-configure'){decisionsReturnFocus=mobileMenuOpen?document.querySelector<HTMLButtonElement>('.mobile-menu-toggle'):el;mobileMenuOpen=false;configuredBranchId=observedBranchId;draft={...branch(configuredBranchId).policy};wizardStep=0;wizardAnswers=Array(6).fill(null);wizardAnswered=Array(6).fill(false);decisionsOpen=true;render();document.querySelector<HTMLButtonElement>('[data-action="close-decisions"]')?.focus();return;}
   if(action==='close-decisions'){decisionsOpen=false;render();decisionsReturnFocus?.focus();decisionsReturnFocus=null;return;}
   if(action==='decision-mode'){decisionsMode=el.dataset.mode as typeof decisionsMode;render();return;}
   if(action==='sidebar-question-prev'){wizardStep=Math.max(0,wizardStep-1);render();return;}
@@ -571,7 +637,7 @@ root.addEventListener('click',e=>{
   if(action==='close-save-help'){toggleSaveHelp(false);}
   if(action==='wizard-review'){wizardStep=Number(el.dataset.step)||0;render();document.querySelector<HTMLInputElement>('input[name="wizard-choice"]:checked')?.focus();}
 });
-root.addEventListener('change',e=>{const el=e.target as HTMLInputElement;if(el.id==='shocks-enabled'){void (async()=>{const enabled=el.checked;el.disabled=true;try{exp=await command('SHOCKS',enabled);persist();render();}catch(err){showToast((err as Error).message,true);render();}})();return;}if(el.matches('input[data-wizard-value]')){const value=el.dataset.wizardValue==='keep'?null:Number(el.dataset.wizardValue);wizardAnswers[wizardStep]=value;wizardAnswered[wizardStep]=true;render();document.querySelector<HTMLInputElement>('input[name="wizard-choice"]:checked')?.focus();return;}if(el.matches('input[name="decision-answer"]')){const q=WIZARD_QUESTIONS[wizardStep]!,choice=q.options[Number(el.value)]!,key=q.key;wizardAnswers[wizardStep]=choice.value;wizardAnswered[wizardStep]=true;draft={...draft,[key]:guidedAnswerValue(exp.base,wizardStep,choice.value)};render();document.querySelector<HTMLInputElement>('input[name="decision-answer"]:checked')?.focus();return;}if(el.id==='observed-branch')selectObservedBranch(el.value as 'A'|'B');});
+root.addEventListener('change',e=>{const el=e.target as HTMLInputElement;if(el.id==='shocks-enabled'){void (async()=>{const enabled=el.checked,changed=enabled!==exp.shocksEnabled;el.disabled=true;try{exp=await command('SHOCKS',enabled);if(changed)markScenarioModified();persist();render();}catch(err){showToast((err as Error).message,true);render();}})();return;}if(el.matches('input[data-wizard-value]')){const value=el.dataset.wizardValue==='keep'?null:Number(el.dataset.wizardValue);wizardAnswers[wizardStep]=value;wizardAnswered[wizardStep]=true;render();document.querySelector<HTMLInputElement>('input[name="wizard-choice"]:checked')?.focus();return;}if(el.matches('input[name="decision-answer"]')){const q=WIZARD_QUESTIONS[wizardStep]!,choice=q.options[Number(el.value)]!,key=q.key;wizardAnswers[wizardStep]=choice.value;wizardAnswered[wizardStep]=true;draft={...draft,[key]:guidedAnswerValue(exp.base,wizardStep,choice.value)};render();document.querySelector<HTMLInputElement>('input[name="decision-answer"]:checked')?.focus();return;}if(el.id==='observed-branch')selectObservedBranch(el.value as 'A'|'B');});
 root.addEventListener('input',e=>{const el=e.target as HTMLInputElement;if(el.id==='new-scenario-name')pendingScenarioName=el.value.slice(0,60);if(el.id==='wizard-scenario-name')wizardScenarioName=el.value.slice(0,60);});
 document.addEventListener('click',e=>{
   if((e.target as Element).closest('.local-status-wrap'))return;
@@ -585,7 +651,7 @@ function showEvent(id:string):void {
   document.body.append(modal);modal.querySelector<HTMLButtonElement>('#close-event')!.onclick=()=>modal.remove();modal.querySelector<HTMLButtonElement>('#close-event')!.focus();
 }
 async function startPrimary(policy:Policy,seed:number,name='',origin?:PresetOrigin):Promise<void> {
-  if(busy||pending.size)return;pause();busy=true;try{await saveQueue;exp=await command('INIT',{dataset,seed,policy,primary:true});sessionEngineBuild=CURRENT_ENGINE_BUILD;sessionPresetOrigin=origin;sessionPresetBranchOrigins=origin?{B:origin}:{};const scenarioName=name.trim().slice(0,60);if(scenarioName)exp={...exp,branchNames:{A:scenarioName,B:scenarioName}};draft={...policy};configuredBranchId='B';compareSourceId='B';observedBranchId='B';pendingPrimaryPolicy=undefined;currentTab='lab';presetStage='';presetDraftOrigin=undefined;playing=false;markConfigured();if(firstRunSetup){firstRunSetup=false;introOpen=false;}else dismissIntro();persist();}
+  if(busy||pending.size)return;pause();busy=true;try{await saveQueue;exp=await command('INIT',{dataset,seed,policy,primary:true});markScenarioModified();sessionEngineBuild=CURRENT_ENGINE_BUILD;sessionPresetOrigin=origin;sessionPresetBranchOrigins=origin?{B:origin}:{};const scenarioName=name.trim().slice(0,60);if(scenarioName)exp={...exp,branchNames:{A:scenarioName,B:scenarioName}};draft={...policy};configuredBranchId='B';compareSourceId='B';observedBranchId='B';pendingPrimaryPolicy=undefined;currentTab='lab';presetStage='';presetDraftOrigin=undefined;playing=false;markConfigured();if(firstRunSetup){firstRunSetup=false;introOpen=false;}else dismissIntro();persist();}
   catch(error){showToast((error as Error).message,true);}finally{busy=false;render();schedule();}
 }
 async function confirmDialog():Promise<void> {
@@ -602,7 +668,7 @@ async function confirmDialog():Promise<void> {
     }else{
       const policy=pendingPrimaryPolicy||baselinePolicy(exp.base);exp=await command('INIT',{dataset,seed:exp.seed,policy,primary:true});sessionEngineBuild=CURRENT_ENGINE_BUILD;sessionPresetOrigin=pendingPresetOrigin;sessionPresetBranchOrigins=pendingPresetOrigin?{B:pendingPresetOrigin}:{};pendingPresetOrigin=undefined;const scenarioName=pendingScenarioName.trim().slice(0,60);if(scenarioName)exp={...exp,branchNames:{A:scenarioName,B:scenarioName}};draft={...policy};configuredBranchId='B';compareSourceId='B';observedBranchId='B';pendingPrimaryPolicy=undefined;
     }
-    configTab='economy';currentTab='lab';if(setupWasPending){playing=false;markConfigured();if(firstRunSetup){firstRunSetup=false;introOpen=false;}}persist();pendingScenarioName='';
+    markScenarioModified();configTab='economy';currentTab='lab';if(setupWasPending){playing=false;markConfigured();if(firstRunSetup){firstRunSetup=false;introOpen=false;}}persist();pendingScenarioName='';
   }catch(e){pendingDialog=action;showToast((e as Error).message,true);}
   finally{busy=false;render();schedule();}
 }
@@ -613,6 +679,7 @@ document.addEventListener('keydown',e=>{
   if(e.key==='Escape'&&settingsOpen){settingsOpen=false;render();return;}
   if(e.key==='Escape'){
     if(mobileMenuOpen){mobileMenuOpen=false;render();document.querySelector<HTMLButtonElement>('.mobile-menu-toggle')?.focus();return;}
+    if(shareOpen){shareOpen=false;render();document.querySelector<HTMLButtonElement>('[data-action="share-options"]')?.focus();return;}
     const help=document.querySelector<HTMLElement>('#save-help-popover');
     if(help&&!help.hidden){toggleSaveHelp(false);document.querySelector<HTMLButtonElement>('#save-help')?.focus();return;}
   }
@@ -626,22 +693,50 @@ document.addEventListener('keydown',e=>{
     else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first?.focus();}
   }
 });
+window.matchMedia('(min-width: 821px)').addEventListener('change',event=>{if(event.matches&&mobileMenuOpen){mobileMenuOpen=false;render();}});
+window.addEventListener('hashchange',()=>{if(editorialActive||location.hash.startsWith('#/espana/'))location.reload();});
 async function boot():Promise<void> {
   try{
     const response=await fetch(new URL('../data/spain.json',import.meta.url));
     if(!response.ok)throw new Error('No se pudo cargar la fotograf\u00eda inicial.');
     dataset=await response.json() as Dataset;datasetHash=fingerprint(JSON.stringify(dataset));const base=selectBase(dataset);
     exp=await command('INIT',{dataset,seed:1847,primary:true});draft={...exp.b.policy};configuredBranchId='B';compareSourceId='B';
-    let restored=false;
-    try{const stored:Session|undefined=await loadLocal();if(stored){const session=validateSession(stored,base,datasetHash);exp=await command('RESTORE',session);sessionEngineBuild=session.engineBuild||{engineVersion:session.modelVersion,commitSha:null};sessionPresetOrigin='presetOrigin' in session?session.presetOrigin:undefined;sessionPresetBranchOrigins='presetBranchOrigins' in session?session.presetBranchOrigins||{}:{};observedBranchId=exp.primaryId||'B';if(exp.comparisonActive){try{const selected=localStorage.getItem('simula-observed-branch');if(selected==='A'||selected==='B')observedBranchId=selected;}catch{}}configuredBranchId=observedBranchId;draft={...branch(configuredBranchId).policy};compareSourceId=exp.primaryId||'B';restored=true;}}
-    catch(e){storageAvailable=false;showToast(`No se ha restaurado la sesi\u00f3n: ${(e as Error).message}`,true);}
+    let restored=false,linked=false;
+    if(new URL(location.href).searchParams.has('s')||new URL(location.href).searchParams.has('v')){
+      linked=true;preserveStoredSession=true;
+      try{
+        const shared=readScenarioUrl(new URL(location.href),base,datasetHash,dataset.countryCode,BUILD_INFO.replayRuntimeId);
+        if(!shared)throw new Error('El enlace del escenario está incompleto.');
+        exp=await command('RESTORE',shared.session);observedBranchId=shared.viewedBranch;configuredBranchId=observedBranchId;compareSourceId=exp.comparisonOriginId||'B';draft={...branch(configuredBranchId).policy};
+        scenarioSource='shared_url';restored=true;
+      }catch(error){scenarioLoadError=(error as Error).message;}
+    }else{
+      try{
+        const slug=editorialSlug(location.hash);
+        if(slug){
+          linked=true;preserveStoredSession=true;
+          const item=findEditorialScenario(slug);if(!item)throw new Error('No existe ese escenario editorial.');
+          exp=await command('INIT',{dataset,seed:item.scenario.seed,policy:item.scenario.policy(base),primary:true,shocksEnabled:item.scenario.shocksEnabled});
+          if(item.scenario.months>0)exp=await command('ADVANCE',item.scenario.months);
+          editorialActive=item;scenarioSource='editorial';observedBranchId='B';configuredBranchId='B';draft={...exp.b.policy};restored=true;
+        }
+      }catch(error){linked=true;preserveStoredSession=true;scenarioLoadError=(error as Error).message;exp=await command('INIT',{dataset,seed:1847,primary:true});}
+    }
+    if(!linked){
+      try{const stored:Session|undefined=await loadLocal();if(stored){const session=validateSession(stored,base,datasetHash);exp=await command('RESTORE',session);sessionEngineBuild=session.engineBuild||{engineVersion:session.modelVersion,commitSha:null};sessionPresetOrigin='presetOrigin' in session?session.presetOrigin:undefined;sessionPresetBranchOrigins='presetBranchOrigins' in session?session.presetBranchOrigins||{}:{};observedBranchId=exp.primaryId||'B';if(exp.comparisonActive){try{const selected=localStorage.getItem('simula-observed-branch');if(selected==='A'||selected==='B')observedBranchId=selected;}catch{}}configuredBranchId=observedBranchId;draft={...branch(configuredBranchId).policy};compareSourceId=exp.primaryId||'B';restored=true;scenarioSource='local';}}
+      catch(e){storageAvailable=false;showToast(`No se ha restaurado la sesi\u00f3n: ${(e as Error).message}`,true);}
+    }
     let marked=false;try{marked=localStorage.getItem('polis-setup-complete')==='1';introOpen=localStorage.getItem('polis-intro-dismissed')!=='1';const savedAppearance=localStorage.getItem('polis-appearance');if(savedAppearance==='light'||savedAppearance==='dark'||savedAppearance==='system')appearance=savedAppearance;}catch{introOpen=true;}
     const baseline=baselinePolicy(exp.base),current=activeBranch().policy;
     const hasCustomPolicy=Object.keys(baseline).some(key=>baseline[key as keyof Policy]!==current[key as keyof Policy]);
     const configured=marked||exp.comparisonActive||activeBranch().state.month>0||hasCustomPolicy;
-    if(configured){markConfigured();}else{firstRunSetup=true;introOpen=false;wizardStep=-1;currentTab='wizard';}
+    if(linked){firstRunSetup=false;introOpen=false;currentTab='lab';}
+    else if(configured){markConfigured();}else{firstRunSetup=true;introOpen=false;wizardStep=-1;currentTab='wizard';}
     restoredSession=restored;if(restoredSession)introOpen=false;
     saveReady=true;if(!restored&&storageAvailable)saveStatus='idle';render();if(restored)persist();
+    emitGrowthEvent({name:'scenario_loaded',source:scenarioSource,country:dataset.countryCode,horizon:branch(observedBranchId).state.month,scenario_version:SCENARIO_URL_VERSION});
+    if(scenarioSource==='shared_url')emitGrowthEvent({name:'shared_scenario_opened',country:dataset.countryCode,horizon:branch(observedBranchId).state.month,scenario_version:SCENARIO_URL_VERSION});
+    if(scenarioLoadError)showToast(`No se pudo abrir el escenario: ${scenarioLoadError} Se ha cargado la configuración inicial.`,true);
   }catch(e){root.innerHTML=`<div class="boot"><div class="brand-mark">S</div><h1>No se pudo iniciar SIMULA TU PAÍS</h1><p>${esc((e as Error).message)}</p><p>Sirve la carpeta dist mediante HTTP. No abras index.html con file://.</p></div>`;}
 }
 void boot();

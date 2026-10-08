@@ -1,13 +1,16 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { stat } from 'node:fs/promises';
+import { readFile, stat } from 'node:fs/promises';
 import { renderVideoTutorial, renderVideoTutorialDialog, TUTORIAL_POSTER_URL, TUTORIAL_VIDEO_URL } from '../dist/app/ui/video-tutorial.js';
 
 test('el build publica un único vídeo y su poster para ambas entradas',async()=>{
-  const source=await stat(`public${TUTORIAL_VIDEO_URL}`),built=await stat(`dist${TUTORIAL_VIDEO_URL}`);
+  const assets=JSON.parse(await readFile('dist/asset-manifest.json','utf8')).assets;
+  const videoBlob=assets[TUTORIAL_VIDEO_URL.slice(1)].path,posterBlob=assets[TUTORIAL_POSTER_URL.slice(1)].path;
+  const source=await stat(`public${TUTORIAL_VIDEO_URL}`),built=await stat(`dist${videoBlob}`);
   assert.ok(source.size>0);
   assert.equal(built.size,source.size);
-  assert.ok((await stat(`dist${TUTORIAL_POSTER_URL}`)).size>0);
+  assert.ok((await stat(`dist${posterBlob}`)).size>0);
+  await assert.rejects(stat(`dist${TUTORIAL_VIDEO_URL}`));
   for(const variant of ['intro','home']){
     const entry=renderVideoTutorial(variant);
     assert.match(entry,new RegExp(`data-tutorial-variant="${variant}"`));

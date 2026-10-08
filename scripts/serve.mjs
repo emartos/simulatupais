@@ -11,7 +11,7 @@ const server = createServer(async (req,res) => {
   if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405); return res.end(); }
   try {
     const url = new URL(req.url || '/', 'http://localhost');
-    const path = resolve(root, '.' + decodeURIComponent(url.pathname === '/' ? '/index.html' : url.pathname));
+    const path = resolve(root, '.' + decodeURIComponent(url.pathname.endsWith('/') ? `${url.pathname}index.html` : url.pathname));
     if (path !== root && !path.startsWith(root + sep)) { res.writeHead(403); return res.end(); }
     const info = await stat(path);
     if (!info.isFile()) { res.writeHead(404); return res.end(); }

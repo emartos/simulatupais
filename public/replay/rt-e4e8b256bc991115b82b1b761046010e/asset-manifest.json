@@ -1,0 +1,69 @@
+{
+  "schema": 1,
+  "assets": {
+    "assets/political-parties/bng.svg": {
+      "sha256": "852a1a5f16b687376872b2c7aac41649dc8828a7ad143c083235585ff8dd45f1",
+      "path": "/replay/blobs/852a1a5f16b687376872b2c7aac41649dc8828a7ad143c083235585ff8dd45f1/asset.svg"
+    },
+    "assets/political-parties/coalicion-canaria.png": {
+      "sha256": "eb2041e39b9c4dc6cccdb8cfd15dfee4a72d2395b32ac25b3c068b49ae67ac5b",
+      "path": "/replay/blobs/eb2041e39b9c4dc6cccdb8cfd15dfee4a72d2395b32ac25b3c068b49ae67ac5b/asset.png"
+    },
+    "assets/political-parties/eaj-pnv.png": {
+      "sha256": "682669f909faaa7f1d56c6625b7c09abc5564600c2f63d68fe1b673a7b5d7978",
+      "path": "/replay/blobs/682669f909faaa7f1d56c6625b7c09abc5564600c2f63d68fe1b673a7b5d7978/asset.png"
+    },
+    "assets/political-parties/eh-bildu.png": {
+      "sha256": "d0a361228dd2039cc9da0644d031788ee7fc06c0bbea5d23e8a60c1bfaca02e6",
+      "path": "/replay/blobs/d0a361228dd2039cc9da0644d031788ee7fc06c0bbea5d23e8a60c1bfaca02e6/asset.png"
+    },
+    "assets/political-parties/erc.png": {
+      "sha256": "8b3103033850d5bb897c7f84748ec607459bfdab85246bf62df04569f5edc8aa",
+      "path": "/replay/blobs/8b3103033850d5bb897c7f84748ec607459bfdab85246bf62df04569f5edc8aa/asset.png"
+    },
+    "assets/political-parties/junts.svg": {
+      "sha256": "e802dce248e8c12cb0c14437205d913a512e8120a51ea739fa624137c651c49b",
+      "path": "/replay/blobs/e802dce248e8c12cb0c14437205d913a512e8120a51ea739fa624137c651c49b/asset.svg"
+    },
+    "assets/political-parties/pp.png": {
+      "sha256": "0a5b57f30b7fd8189243e42a514274f1f1df1bbb147251b6442aef4b0ca48c52",
+      "path": "/replay/blobs/0a5b57f30b7fd8189243e42a514274f1f1df1bbb147251b6442aef4b0ca48c52/asset.png"
+    },
+    "assets/political-parties/psoe.png": {
+      "sha256": "260d93118093b51dabf04922e25fda65554d876a1256c6239e829928985d30c6",
+      "path": "/replay/blobs/260d93118093b51dabf04922e25fda65554d876a1256c6239e829928985d30c6/asset.png"
+    },
+    "assets/political-parties/sumar.svg": {
+      "sha256": "afa7ec044127ce16384633391ef22e374f53e5a62b0c50e2e5bbc0ae5af38901",
+      "path": "/replay/blobs/afa7ec044127ce16384633391ef22e374f53e5a62b0c50e2e5bbc0ae5af38901/asset.svg"
+    },
+    "assets/political-parties/upn.png": {
+      "sha256": "fa2805c13a45966eff714ca2df1673878074170ead19b664c9a1c363715be8dd",
+      "path": "/replay/blobs/fa2805c13a45966eff714ca2df1673878074170ead19b664c9a1c363715be8dd/asset.png"
+    },
+    "assets/political-parties/vox.svg": {
+      "sha256": "eba8ebd802ac10587de4edc2d93b53e02b912c90fa2af775a23738215e0dd93a",
+      "path": "/replay/blobs/eba8ebd802ac10587de4edc2d93b53e02b912c90fa2af775a23738215e0dd93a/asset.svg"
+    },
+    "icon.svg": {
+      "sha256": "be693eadd65e286ea3026987cd55fc26142adc40638630a258a1bb9132738fbd",
+      "path": "/replay/blobs/be693eadd65e286ea3026987cd55fc26142adc40638630a258a1bb9132738fbd/asset.svg"
+    },
+    "media/tutorial-simula-tu-pais-poster.webp": {
+      "sha256": "f93ac6d2ccb572bbf4b85dcc6e536b483028f9cb068faba14b84b5eaf5b36a18",
+      "path": "/replay/blobs/f93ac6d2ccb572bbf4b85dcc6e536b483028f9cb068faba14b84b5eaf5b36a18/asset.webp"
+    },
+    "media/tutorial-simula-tu-pais.mp4": {
+      "sha256": "c39631ec85ceba4d5e1712810273482bf05b110f5ee66611288bf74e71efe207",
+      "path": "/replay/blobs/c39631ec85ceba4d5e1712810273482bf05b110f5ee66611288bf74e71efe207/asset.mp4"
+    },
+    "share-preview.png": {
+      "sha256": "dbb6fdeb20c44983a90e21a20f9243e41cbca28bb7ab81bb167f5ea4f443b291",
+      "path": "/replay/blobs/dbb6fdeb20c44983a90e21a20f9243e41cbca28bb7ab81bb167f5ea4f443b291/asset.png"
+    },
+    "share-preview.svg": {
+      "sha256": "07b8dc8558c7d63a64d9a5bc62f661f318c807a240dd8d3d3263b83f9241f63d",
+      "path": "/replay/blobs/07b8dc8558c7d63a64d9a5bc62f661f318c807a240dd8d3d3263b83f9241f63d/asset.svg"
+    }
+  }
+}

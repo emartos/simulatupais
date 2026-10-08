@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Simula tu país: explora escenarios económicos, no predicciones">
+  <rect width="1200" height="630" fill="#101820"/>
+  <rect x="32" y="32" width="1136" height="566" rx="24" fill="#1c2834" stroke="#425363"/>
+  <rect x="72" y="72" width="72" height="72" rx="12" fill="#ffbf76"/>
+  <text x="95" y="124" fill="#101820" font-family="DejaVu Sans, sans-serif" font-size="50" font-weight="700">S</text>
+  <text x="170" y="124" fill="#f5f7fa" font-family="DejaVu Sans, sans-serif" font-size="35" font-weight="700">SIMULA TU PAÍS</text>
+  <text x="72" y="246" fill="#f5f7fa" font-family="DejaVu Sans, sans-serif" font-size="47" font-weight="700">Explora cómo cambia tu país</text>
+  <text x="72" y="311" fill="#a9bdcc" font-family="DejaVu Sans, sans-serif" font-size="28">Configura un escenario, simúlalo y compártelo.</text>
+  <path d="M80 470 L250 432 L405 446 L560 380 L725 398 L880 332 L1110 350" fill="none" stroke="#ffbf76" stroke-width="9" stroke-linecap="round" stroke-linejoin="round"/>
+  <line x1="72" y1="520" x2="1128" y2="520" stroke="#425363"/>
+  <text x="72" y="563" fill="#ffbf76" font-family="DejaVu Sans, sans-serif" font-size="23" font-weight="700">Escenario simulado, no predicción</text>
+  <text x="915" y="563" fill="#a9bdcc" font-family="DejaVu Sans, sans-serif" font-size="22">simulatupais.org</text>
+</svg>
